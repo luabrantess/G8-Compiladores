@@ -28,4 +28,8 @@ O objetivo principal é explorar conceitos fundamentais de **compiladores**, com
 1. Clone o repositório:
 
 ```bash
+<<<<<<< HEAD
 git clone https://github.com/seu-usuario/seu-repositorio.git
+=======
+git clone https://github.com/seu-usuario/seu-repositorio.git
+>>>>>>> bdd2e59058f881e1c3c19579df62425697f1c15a
