@@ -2,9 +2,6 @@
 #include "parser.tab.h"
 #include <string.h>
 #include <stdlib.h>
-
-YYSTYPE yylval;
-
 %}
 
 %%
@@ -62,9 +59,4 @@ YYSTYPE yylval;
 
 int yywrap(void) {
     return 1;
-}
-
-int main() {
-    yylex();  // chama o analisador léxico
-    return 0;
 }
