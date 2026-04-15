@@ -41,7 +41,15 @@ As próximas etapas do projeto incluem:
 
 ---
 
-## 3. Equipe
+## Como Rodar os Testes
+
+
+Na pasta `src`, execute o comando `make` e em seguida `./compilador < ../testes/nome_do_arquivo_de_teste.c`.
+
+**Obs:** É necessário ter instalado em sua máquina o gcc, flex, bison e make. Todos podem ser instalados com o comando `sudo apt install` caso você esteja no ambiente linux.
+
+
+## 4. Equipe
 
 <table>
   <tr>
