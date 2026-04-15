@@ -5,3 +5,7 @@ for (x = 0; x <= 100; x = x + 1) {
         x = x * 2;
     }
 }
+
+// Saida esperada:
+//Iniciando analise sintatica...
+//Analise concluida!

@@ -7,3 +7,8 @@ while (i < 10) {
         i = i + 1;
     }
 }
+
+// Saida esperada:
+//Iniciando analise sintatica...
+//Analise concluida!
+

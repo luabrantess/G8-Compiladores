@@ -5,3 +5,8 @@ z = z @ 2;
 if z > 5 {
     z = 0;
 }
+
+// Saída esperada:
+//Iniciando analise sintatica...
+//Erro sintatico: syntax error
+//Analise concluida!
