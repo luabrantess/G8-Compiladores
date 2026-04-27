@@ -1,0 +1,7 @@
+# Executaveis gerados
+compilador
+
+# Arquivos gerados pelo Flex e Bison
+lex.yy.c
+parser.tab.c
+parser.tab.h
