@@ -33,6 +33,10 @@
 ">"                     { return '>'; }
 "<"                     { return '<'; }
 
+ /* --- OPERADORES DE INCREMENTO E DECREMENTO --- */
+"++"                    { return INC; }
+"--"                    { return DEC; }
+
  /* --- OPERADORES LÓGICOS (Padrão C) --- */
 "&&"                    { return AND; }
 "||"                    { return OR; }

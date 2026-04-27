@@ -16,7 +16,7 @@ int yylex(void);
 %token INT CHAR FLOAT
 %token IF ELSE WHILE FOR
 %token ID NUM NUM_FLOAT
-%token EQ NEQ GEQ LEQ AND OR NOT
+%token EQ NEQ GEQ LEQ AND OR NOT INC DEC
 
 /* --- Tipagem dos tokens --- */
 %type <num> NUM NUM_FLOAT
@@ -30,6 +30,7 @@ int yylex(void);
 %left '+' '-'
 %left '*' '/'
 %right NOT UMINUS
+%right INC DEC
 
 /* --- Correcao do dangling else --- */
 %nonassoc LOWER_THAN_ELSE
@@ -52,6 +53,7 @@ statements:
 statement:
       declaration ';'
     | assignment ';'
+    | expression ';'
     | if_statement
     | while_statement
     | for_statement
@@ -87,9 +89,15 @@ while_statement:
     WHILE '(' expression ')' statement
 ;
 
+/* Necessario para o for reconhecer operadores de incremento x++*/
+for_action:
+      assignment
+    | expression
+;
+
 /* --- For --- */
 for_statement:
-    FOR '(' assignment ';' expression ';' assignment ')' statement
+    FOR '(' assignment ';' expression ';' for_action ')' statement
 ;
 
 /* --- Expressoes --- */
@@ -97,6 +105,10 @@ expression:
       expression '+' expression
     | expression '-' expression
     | '-' expression %prec UMINUS
+    | expression INC    /* ex: x++ */
+    | INC expression    /* ex: ++x */
+    | expression DEC    /* ex: x-- */
+    | DEC expression    /* ex: --x */
     | expression '*' expression
     | expression '/' expression
     | expression EQ expression
