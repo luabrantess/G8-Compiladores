@@ -87,6 +87,8 @@ statement:
 declaration:
       type ID
     | type ID '=' expression
+    | type ID '[' NUM ']'               /* Criar lista vazia */
+    | type ID '[' NUM ']' '=' '{' arg_list '}' /* Criar lista com valores {1, 2, 3} */
 ;
 
 /* --- Tipos --- */
@@ -99,6 +101,7 @@ type:
 /* --- Atribuicao --- */
 assignment:
     ID '=' expression
+    | ID '[' expression ']' '=' expression  /* Atribuir valor na lista */
 ;
 
 /* --- If / Else --- */
@@ -156,6 +159,7 @@ expression:
     | NOT expression
     | '(' expression ')'
     | ID '(' arg_list ')'
+    | ID '[' expression ']'     /* Ler valor da lista */
     | NUM
     | NUM_FLOAT
     | ID

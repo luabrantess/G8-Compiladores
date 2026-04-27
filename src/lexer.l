@@ -59,6 +59,8 @@
 "}"                     { return '}'; }
 ";"                     { return ';'; }
 ","                     { return ','; }
+"["                     { return '['; }
+"]"                     { return ']'; }
 
  /* --- TRATAMENTO DE ERROS --- */
 .                       { printf("Erro lexico: %s\n", yytext); }
