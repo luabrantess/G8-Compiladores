@@ -1,26 +1,22 @@
 site_name: Compiladores
 site_description: Documentação do projeto de Compiladores
-
+site_url: https://luabrantess.github.io/G8-Compiladores/
 theme:
-  name: material
-  palette:
-    - scheme: slate
-      primary: indigo
-      accent: cyan
-      toggle:
-        icon: material/weather-night
-        name: Modo escuro
-
-    - scheme: slate
-      primary: deep purple
-      accent: pink
-      toggle:
-        icon: material/weather-sunny
-        name: Modo claro
-
+    name: material
+    features:
+        - search.suggest
+        - search.highlight
+        - content.tabs.link
+plugins:
+  - search
 nav:
   - Início: index.md
   - Documentação:
-      - Documentação: documentacao
+    - Relatório de Desenvolvimento: documentacao/relatoriodesenvolvimento.md
+    - Especificações do Compilador: documentacao/specs.md
   - Sprints:
-      - Sprint 1: sprints
+    - Índice de Sprints: documentacao/sprints/index.md
+    - Sprint 1: documentacao/sprints/sprint1.md
+    - Sprint 2: documentacao/sprints/sprint2.md
+    
+

@@ -39,3 +39,9 @@ O arquivo `lexer.l` foi validado com sucesso, atendendo aos requisitos definidos
 
 * Edição da página no GitHub Pages para melhorar a apresentação
 * Padronização visual com foco em um aspecto mais profissional
+
+## Histórico de versões
+
+| Versão | Data       | Autor           | Descrição da Alteração                  | Revisor   |
+|--------|-----------|----------------|----------------------------------------|--------------|
+| 1.0    | 15/04/2026 | [Ana Luiza](https://github.com/luabrantess)  | Adição do planejamento da sprint 1 | |

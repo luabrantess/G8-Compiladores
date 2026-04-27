@@ -1,35 +1,92 @@
-# 🧠 Compilador de C para Lua
+# Compilador de C para Lua
 
-## 📌 Descrição
+## 1. Descrição
 
-Este projeto consiste no desenvolvimento de um compilador capaz de traduzir código escrito na linguagem **C** para a linguagem **Lua**.
+Este projeto tem como objetivo o desenvolvimento de um compilador capaz de traduzir código-fonte escrito na linguagem C para a linguagem Lua.
 
-O objetivo principal é explorar conceitos fundamentais de **compiladores**, como:
+A proposta contempla a implementação das etapas clássicas de compilação, desde a leitura do código até a geração do código alvo. Atualmente, o sistema já implementa:
 
-- Análise léxica
-- Análise sintática
-- Análise semântica
-- Geração de código intermediário
-- Tradução para linguagem alvo (Lua)
+- Análise Léxica  
+- Análise Sintática  
 
----
-
-## 🚀 Tecnologias Utilizadas
-
-- Python / Java / C++ *(ajuste conforme seu projeto)*
-- Expressões Regulares
-- Estruturas de dados (árvores sintáticas)
-- Lua (linguagem alvo)
+Essas etapas garantem a validação estrutural do código C de acordo com regras gramaticais previamente definidas.
 
 ---
 
-## ⚙️ Como Executar
+## 2. Arquitetura do Compilador
 
-1. Clone o repositório:
+O projeto utiliza ferramentas consolidadas no desenvolvimento de compiladores, organizadas da seguinte forma:
 
-```bash
-<<<<<<< HEAD
-git clone https://github.com/seu-usuario/seu-repositorio.git
-=======
-git clone https://github.com/seu-usuario/seu-repositorio.git
->>>>>>> bdd2e59058f881e1c3c19579df62425697f1c15a
+### 2.1 Analisador Léxico (`lexer.l`)
+
+Desenvolvido com Flex, é responsável por ler o código-fonte e convertê-lo em tokens, como palavras-chave, identificadores e operadores.
+
+### 2.2 Analisador Sintático (`parser.y`)
+
+Desenvolvido com Bison, define a gramática da linguagem C, validando a estrutura lógica das construções, como:
+
+- Estruturas condicionais  
+- Estruturas de repetição  
+- Atribuições  
+
+### 2.3 Evoluções Planejadas
+
+As próximas etapas do projeto incluem:
+
+- Implementação da Tabela de Símbolos  
+- Análise Semântica (verificação de tipos)  
+- Geração da Árvore Sintática Abstrata (AST)  
+- Geração de código intermediário  
+- Tradução final para Lua  
+
+---
+
+## Como Rodar os Testes
+
+
+Na pasta `src`, execute o comando `make` e em seguida `./compilador < ../testes/nome_do_arquivo_de_teste.c`.
+
+**Obs:** É necessário ter instalado em sua máquina o gcc, flex, bison e make. Todos podem ser instalados com o comando `sudo apt install` caso você esteja no ambiente linux.
+
+
+## 4. Equipe
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Bgrangeiro">
+        <img src="https://github.com/Bgrangeiro.png" width="100px;" alt="Bgrangeiro"/>
+        <br />
+        <sub><b>Bgrangeiro</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/luabrantess">
+        <img src="https://github.com/luabrantess.png" width="100px;" alt="luabrantess"/>
+        <br />
+        <sub><b>luabrantess</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/G0ndim">
+        <img src="https://github.com/G0ndim.png" width="100px;" alt="G0ndim"/>
+        <br />
+        <sub><b>G0ndim</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/TulioCeleri">
+        <img src="https://github.com/TulioCeleri.png" width="100px;" alt="TulioCeleri"/>
+        <br />
+        <sub><b>TulioCeleri</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/samarawwleticia">
+        <img src="https://github.com/samarawwleticia.png" width="100px;" alt="samarawwleticia"/>
+        <br />
+        <sub><b>samarawwleticia</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>

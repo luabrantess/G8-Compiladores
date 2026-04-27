@@ -40,3 +40,9 @@
 * Implementação de 15 casos de teste
 * Relatório de validação dos testes
 * GitHub Pages publicado e atualizado
+
+## Histórico de versões
+
+| Versão | Data       | Autor           | Descrição da Alteração                  | Revisor   |
+|--------|-----------|----------------|----------------------------------------|--------------|
+| 1.0    | 15/04/2026 | [Ana Luiza](https://github.com/luabrantess)  | Adição do planejamento da sprint 2 | |
