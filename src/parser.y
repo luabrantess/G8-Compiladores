@@ -16,7 +16,7 @@ int yylex(void);
 %token INT CHAR FLOAT
 %token IF ELSE WHILE FOR
 %token ID NUM NUM_FLOAT
-%token EQ NEQ GEQ LEQ AND OR NOT INC DEC
+%token EQ NEQ GEQ LEQ AND OR NOT INC DEC RETURN
 
 /* --- Tipagem dos tokens --- */
 %type <num> NUM NUM_FLOAT
@@ -49,6 +49,26 @@ statements:
     | statement
 ;
 
+/* --- Listas de Parametros (Para criar a funcao) --- */
+param_list:
+      /* vazio */
+    | params
+;
+
+params:
+      param
+    | params ',' param
+;
+
+param:
+    type ID
+;
+
+/* --- Definicao de Funcao --- */
+function_declaration:
+    type ID '(' param_list ')' '{' statements '}'
+;
+
 /* --- Tipos de comandos --- */
 statement:
       declaration ';'
@@ -58,6 +78,9 @@ statement:
     | while_statement
     | for_statement
     | '{' statements '}'
+    | function_declaration      /* Criar funcao */
+    | RETURN expression ';'     /* Retornar valor */
+    | RETURN ';'                /* Retorno vazio */
 ;
 
 /* --- Declaracao de variavel --- */
@@ -100,6 +123,17 @@ for_statement:
     FOR '(' assignment ';' expression ';' for_action ')' statement
 ;
 
+/* --- Argumentos (Para chamar a funcao) --- */
+arg_list:
+      /* vazio */
+    | args
+;
+
+args:
+      expression
+    | args ',' expression
+;
+
 /* --- Expressoes --- */
 expression:
       expression '+' expression
@@ -121,6 +155,7 @@ expression:
     | expression OR expression
     | NOT expression
     | '(' expression ')'
+    | ID '(' arg_list ')'
     | NUM
     | NUM_FLOAT
     | ID

@@ -20,6 +20,9 @@
 "while"                 { return WHILE; }
 "for"                   { return FOR; }
 
+ /* FUNÇÕES --- */
+"return"                { return RETURN; }
+
  /* --- IDENTIFICADORES E NÚMEROS --- */
 [a-zA-Z_][a-zA-Z0-9_]* { yylval.str = strdup(yytext); return ID; }
 [0-9]+                  { yylval.num = atoi(yytext); return NUM; }
@@ -55,6 +58,7 @@
 "{"                     { return '{'; }
 "}"                     { return '}'; }
 ";"                     { return ';'; }
+","                     { return ','; }
 
  /* --- TRATAMENTO DE ERROS --- */
 .                       { printf("Erro lexico: %s\n", yytext); }
