@@ -1,3 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/documentacao/relatoriodesenvolvimento/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/documentacao/specs/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/documentacao/sprints/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/documentacao/sprints/sprint1/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
+    <url>
+         <loc>https://luabrantess.github.io/G8-Compiladores/documentacao/sprints/sprint2/</loc>
+         <lastmod>2026-04-27</lastmod>
+    </url>
 </urlset>
