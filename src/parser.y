@@ -29,7 +29,7 @@ int yylex(void);
 %left '>' '<' GEQ LEQ
 %left '+' '-'
 %left '*' '/'
-%right NOT
+%right NOT UMINUS
 
 /* --- Correcao do dangling else --- */
 %nonassoc LOWER_THAN_ELSE
@@ -96,6 +96,7 @@ for_statement:
 expression:
       expression '+' expression
     | expression '-' expression
+    | '-' expression %prec UMINUS
     | expression '*' expression
     | expression '/' expression
     | expression EQ expression
