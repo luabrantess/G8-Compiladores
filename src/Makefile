@@ -4,6 +4,7 @@ EXEC = compilador
 # Arquivos
 LEX = lexer.l
 YACC = parser.y
+AST_C = ast.c
 
 # Arquivos gerados
 LEX_C = lex.yy.c
@@ -16,8 +17,8 @@ CC = gcc
 # Regras principais
 all: $(EXEC)
 
-$(EXEC): $(LEX_C) $(YACC_C)
-	$(CC) $(LEX_C) $(YACC_C) -o $(EXEC)
+$(EXEC): $(LEX_C) $(YACC_C) $(AST_C)
+	$(CC) $(LEX_C) $(YACC_C) $(AST_C) -o $(EXEC)
 
 # Gerar parser (Bison)
 $(YACC_C) $(YACC_H): $(YACC)
