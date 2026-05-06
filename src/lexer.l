@@ -25,8 +25,16 @@
 
  /* --- IDENTIFICADORES E NÚMEROS --- */
 [a-zA-Z_][a-zA-Z0-9_]* { yylval.str = strdup(yytext); return ID; }
-[0-9]+                  { yylval.num = atoi(yytext); return NUM; }
-[0-9]+"."[0-9]+         { return NUM_FLOAT; }
+
+[0-9]+"."[0-9]+ {
+    yylval.fnum = atof(yytext);
+    return NUM_FLOAT;
+}
+
+[0-9]+ {
+    yylval.num = atoi(yytext);
+    return NUM;
+}
 
  /* --- OPERADORES DE COMPARAÇÃO --- */
 "=="                    { return EQ; }

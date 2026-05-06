@@ -12,6 +12,7 @@ ASTNode* raiz_da_arvore;
 /* --- Uniao para valores semanticos --- */
 %union {
     int num;
+    float fnum;
     char* str;
     struct ASTNode* node;
 }
@@ -28,7 +29,8 @@ ASTNode* raiz_da_arvore;
 %type <node> param_list params param arg_list args function_declaration
 
 /* --- Tipagem dos tokens e tipos simples --- */
-%type <num> NUM NUM_FLOAT type
+%type <num> NUM type
+%type <fnum> NUM_FLOAT
 %type <str> ID
 
 /* --- Precedencia de operadores --- */
@@ -170,7 +172,7 @@ expression:
     | ID '(' arg_list ')'       { $$ = criar_no_func_call($1, $3); }
     | ID '[' expression ']'     { $$ = criar_no_array_access($1, $3); }
     | NUM                       { $$ = criar_no_numero($1); }
-    | NUM_FLOAT                 { $$ = criar_no_float(0.0); /* Placeholder, já que o lexer atual não envia o float por yylval */ }
+    | NUM_FLOAT                 { $$ = criar_no_float($1); }
     | ID                        { $$ = criar_no_id($1); }
 ;
 
