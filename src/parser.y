@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ast.h"
+#include "symtable.h"
 
 void yyerror(const char *s);
 int yylex(void);
@@ -189,6 +190,12 @@ int main() {
     
     if (yyparse() == 0) {
         printf("Analise concluida com sucesso!\n");
+        printf("\n--- TABELA DE SIMBOLOS ---\n");
+        SymbolTable tabela;
+        init_symbol_table(&tabela);
+        analyze_semantics(raiz_da_arvore, &tabela);
+        print_symbol_table(&tabela);
+
         printf("\n--- ARVORE SINTATICA GERADA ---\n");
         imprimir_ast(raiz_da_arvore, 0);
     } else {
