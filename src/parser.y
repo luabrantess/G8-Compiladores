@@ -29,7 +29,7 @@ ASTNode* raiz_da_arvore;
 %destructor { free($$); } <str>
 
 /* --- Tipagem das regras (Não-terminais) --- */
-%type <node> program statements statement expression
+%type <node> program statements optional_statements statement expression
 %type <node> if_statement while_statement for_statement for_action assignment declaration
 %type <node> param_list params param arg_list args function_declaration
 
@@ -58,6 +58,11 @@ program:
 ;
 
 /* --- Lista de comandos --- */
+optional_statements:
+      /* vazio */           { $$ = NULL; }
+    | statements            { $$ = $1; }
+;
+
 statements:
       statements statement  { $$ = criar_no_bloco($1, $2); }
     | statement             { $$ = $1; }
@@ -80,7 +85,7 @@ param:
 
 /* --- Definicao de Funcao --- */
 function_declaration:
-    type ID '(' param_list ')' '{' statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); free($2); }
+    type ID '(' param_list ')' '{' optional_statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); free($2); }
 ;
 
 /* --- Tipos de comandos --- */
@@ -91,7 +96,7 @@ statement:
     | if_statement              { $$ = $1; }
     | while_statement           { $$ = $1; }
     | for_statement             { $$ = $1; }
-    | '{' statements '}'        { $$ = criar_no_escopo($2); }
+    | '{' optional_statements '}' { $$ = criar_no_escopo($2); }
     | function_declaration      { $$ = $1; }
     | RETURN expression ';'     { $$ = criar_no_return($2); }
     | RETURN ';'                { $$ = criar_no_return(NULL); }
