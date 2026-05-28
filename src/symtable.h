@@ -28,10 +28,6 @@ typedef struct {
     int scope_stack[256];
     int scope_stack_top;
     int semantic_errors;
-
-    int inside_function;
-    int current_function_return_type;
-    const char *current_function_name;
 } SymbolTable;
 
 void init_symbol_table(SymbolTable *table);
