@@ -42,6 +42,13 @@ ASTNode* criar_no_float(float valor) {
     return no;
 }
 
+ASTNode* criar_no_char_literal(char valor) {
+    ASTNode* no = novo_no();
+    no->type = AST_CHAR_LITERAL;
+    no->char_val = valor;
+    return no;
+}
+
 ASTNode* criar_no_id(char* nome) {
     ASTNode* no = novo_no();
     no->type = AST_ID;
@@ -208,6 +215,7 @@ void imprimir_ast(ASTNode* no, int nivel) {
     switch (no->type) {
         case AST_NUM: printf("NUMERO: %d\n", no->int_val); break;
         case AST_FLOAT: printf("FLOAT: %f\n", no->float_val); break;
+        case AST_CHAR_LITERAL: printf("CHAR: '%c'\n", no->char_val); break;
         case AST_ID: printf("VARIAVEL: %s\n", no->var_name); break;
         case AST_BINOP:
             printf("BINOP: ");
@@ -306,6 +314,7 @@ void liberar_ast(ASTNode* no) {
     switch (no->type) {
         case AST_NUM:
         case AST_FLOAT:
+        case AST_CHAR_LITERAL:
             break;
 
         case AST_ID:

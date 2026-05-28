@@ -11,6 +11,8 @@ static const char *type_to_string(int data_type) {
         case INT: return "int";
         case CHAR: return "char";
         case FLOAT: return "float";
+        case DOUBLE: return "double";
+        case VOID: return "void";
         case TYPE_UNKNOWN: return "desconhecido";
         default: return "desconhecido";
     }
@@ -154,7 +156,11 @@ static int count_arguments(ASTNode *list) {
 }
 
 static int is_numeric_type(int data_type) {
-    return data_type == INT || data_type == CHAR || data_type == FLOAT;
+    return data_type == INT || data_type == CHAR || data_type == FLOAT || data_type == DOUBLE;
+}
+
+static int is_void_type(int data_type) {
+    return data_type == VOID;
 }
 
 static int is_type_compatible(int expected_type, int actual_type) {
@@ -163,6 +169,10 @@ static int is_type_compatible(int expected_type, int actual_type) {
     }
 
     if (expected_type == actual_type) {
+        return 1;
+    }
+
+    if (expected_type == DOUBLE && (actual_type == FLOAT || actual_type == INT || actual_type == CHAR)) {
         return 1;
     }
 
@@ -184,6 +194,10 @@ static int arithmetic_result_type(int left_type, int right_type) {
 
     if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
         return TYPE_UNKNOWN;
+    }
+
+    if (left_type == DOUBLE || right_type == DOUBLE) {
+        return DOUBLE;
     }
 
     if (left_type == FLOAT || right_type == FLOAT) {
@@ -486,6 +500,9 @@ static int infer_expression_type(ASTNode *node, SymbolTable *table) {
         case AST_FLOAT:
             return FLOAT;
 
+        case AST_CHAR_LITERAL:
+            return CHAR;
+
         case AST_ID: {
             Symbol *symbol = require_variable(table, node->var_name);
             return symbol != NULL ? symbol->data_type : TYPE_UNKNOWN;
@@ -514,6 +531,12 @@ static void analyze_list_as_parameters(ASTNode *list, SymbolTable *table) {
         ASTNode *item = list->list.item;
 
         if (item != NULL && item->type == AST_DECL) {
+            if (is_void_type(item->decl.data_type)) {
+                printf("Erro semantico: parametro '%s' nao pode ter tipo void\n",
+                       item->decl.var_name);
+                table->semantic_errors++;
+            }
+
             insert_symbol(table, item->decl.var_name, item->decl.data_type,
                           SYMBOL_PARAMETER, 0, 0);
         }
@@ -583,6 +606,7 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
     switch (node->type) {
         case AST_NUM:
         case AST_FLOAT:
+        case AST_CHAR_LITERAL:
         case AST_ID:
         case AST_BINOP:
         case AST_UNOP:
@@ -651,6 +675,12 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             break;
 
         case AST_DECL: {
+            if (is_void_type(node->decl.data_type)) {
+                printf("Erro semantico: variavel '%s' nao pode ter tipo void\n",
+                       node->decl.var_name);
+                table->semantic_errors++;
+            }
+
             int inserted = insert_symbol(table, node->decl.var_name, node->decl.data_type,
                                          SYMBOL_VARIABLE, 0, 0);
             int value_type = infer_expression_type(node->decl.value, table);
@@ -663,6 +693,12 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
         }
 
         case AST_ARRAY_DECL:
+            if (is_void_type(node->array_decl.data_type)) {
+                printf("Erro semantico: array '%s' nao pode ter tipo void\n",
+                       node->array_decl.var_name);
+                table->semantic_errors++;
+            }
+
             if (node->array_decl.size <= 0) {
                 printf("Erro semantico: array '%s' deve ter tamanho maior que zero\n",
                        node->array_decl.var_name);
@@ -701,7 +737,7 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             analyze_semantics(node->func_decl.body, table);
             exit_scope(table);
 
-            if (!body_guarantees_return(node->func_decl.body)) {
+            if (!is_void_type(node->func_decl.return_type) && !body_guarantees_return(node->func_decl.body)) {
                 printf("Erro semantico: funcao '%s' deve retornar um valor do tipo %s\n",
                        node->func_decl.func_name,
                        type_to_string(node->func_decl.return_type));
@@ -723,16 +759,22 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             }
 
             if (node->return_stmt.expr == NULL) {
-                printf("Erro semantico: return sem valor na funcao '%s' (esperado %s)\n",
-                       table->current_function_name,
-                       type_to_string(table->current_function_return_type));
-                table->semantic_errors++;
+                if (!is_void_type(table->current_function_return_type)) {
+                    printf("Erro semantico: return sem valor na funcao '%s' (esperado %s)\n",
+                           table->current_function_name,
+                           type_to_string(table->current_function_return_type));
+                    table->semantic_errors++;
+                }
                 break;
             }
 
             int return_type = infer_expression_type(node->return_stmt.expr, table);
 
-            if (!is_type_compatible(table->current_function_return_type, return_type)) {
+            if (is_void_type(table->current_function_return_type)) {
+                printf("Erro semantico: funcao void '%s' nao deve retornar valor\n",
+                       table->current_function_name);
+                table->semantic_errors++;
+            } else if (!is_type_compatible(table->current_function_return_type, return_type)) {
                 printf("Erro semantico: retorno incompativel na funcao '%s' (esperado %s, encontrado %s)\n",
                        table->current_function_name,
                        type_to_string(table->current_function_return_type),

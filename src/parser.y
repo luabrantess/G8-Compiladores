@@ -20,10 +20,10 @@ ASTNode* raiz_da_arvore;
 }
 
 /* --- Tokens vindos do lexer --- */
-%token INT CHAR FLOAT
+%token INT CHAR FLOAT DOUBLE VOID
 %token IF ELSE WHILE FOR
 %token <str> ID
-%token <num> NUM
+%token <num> NUM CHAR_LITERAL
 %token <fnum> NUM_FLOAT
 %token EQ NEQ GEQ LEQ AND OR NOT INC DEC RETURN
 %destructor { free($$); } <str>
@@ -110,6 +110,8 @@ type:
       INT   { $$ = INT; }
     | CHAR  { $$ = CHAR; }
     | FLOAT { $$ = FLOAT; }
+    | DOUBLE { $$ = DOUBLE; }
+    | VOID  { $$ = VOID; }
 ;
 
 /* --- Atribuicao --- */
@@ -176,6 +178,7 @@ expression:
     | ID '[' expression ']'     { $$ = criar_no_array_access($1, $3); free($1); }
     | NUM                       { $$ = criar_no_numero($1); }
     | NUM_FLOAT                 { $$ = criar_no_float($1); }
+    | CHAR_LITERAL              { $$ = criar_no_char_literal((char)$1); }
     | ID                        { $$ = criar_no_id($1); free($1); }
 ;
 

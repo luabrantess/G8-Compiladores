@@ -27,6 +27,8 @@ static char* copiar_texto(const char* texto) {
 "int"                   { return INT; }
 "char"                  { return CHAR; }
 "float"                 { return FLOAT; }
+"double"                { return DOUBLE; }
+"void"                  { return VOID; }
 
  /* --- CONDICIONAIS E REPETIÇÃO --- */
 "if"                    { return IF; }
@@ -38,6 +40,29 @@ static char* copiar_texto(const char* texto) {
 "return"                { return RETURN; }
 
  /* --- IDENTIFICADORES E NÚMEROS --- */
+
+\'([^\\\'\n]|\\[ntr0\\\'\"])\' {
+    char c;
+
+    if (yytext[1] == '\\') {
+        switch (yytext[2]) {
+            case 'n': c = '\n'; break;
+            case 't': c = '\t'; break;
+            case 'r': c = '\r'; break;
+            case '0': c = '\0'; break;
+            case '\\': c = '\\'; break;
+            case '\'': c = '\''; break;
+            case '"': c = '"'; break;
+            default: c = yytext[2]; break;
+        }
+    } else {
+        c = yytext[1];
+    }
+
+    yylval.num = c;
+    return CHAR_LITERAL;
+}
+
 [a-zA-Z_][a-zA-Z0-9_]* { yylval.str = copiar_texto(yytext); return ID; }
 
 [0-9]+"."[0-9]+ {
