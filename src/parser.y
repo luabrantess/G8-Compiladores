@@ -6,6 +6,7 @@
 
 void yyerror(const char *s);
 int yylex(void);
+extern int lexical_errors;
 
 ASTNode* raiz_da_arvore;
 %}
@@ -21,18 +22,19 @@ ASTNode* raiz_da_arvore;
 /* --- Tokens vindos do lexer --- */
 %token INT CHAR FLOAT
 %token IF ELSE WHILE FOR
-%token ID NUM NUM_FLOAT
+%token <str> ID
+%token <num> NUM
+%token <fnum> NUM_FLOAT
 %token EQ NEQ GEQ LEQ AND OR NOT INC DEC RETURN
+%destructor { free($$); } <str>
 
 /* --- Tipagem das regras (Não-terminais) --- */
 %type <node> program statements statement expression
 %type <node> if_statement while_statement for_statement for_action assignment declaration
 %type <node> param_list params param arg_list args function_declaration
 
-/* --- Tipagem dos tokens e tipos simples --- */
-%type <num> NUM type
-%type <fnum> NUM_FLOAT
-%type <str> ID
+/* --- Tipagem dos tipos simples --- */
+%type <num> type
 
 /* --- Precedencia de operadores --- */
 %left OR
@@ -73,12 +75,12 @@ params:
 ;
 
 param:
-    type ID                 { $$ = criar_no_decl($1, $2, NULL); }
+    type ID                 { $$ = criar_no_decl($1, $2, NULL); free($2); }
 ;
 
 /* --- Definicao de Funcao --- */
 function_declaration:
-    type ID '(' param_list ')' '{' statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); }
+    type ID '(' param_list ')' '{' statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); free($2); }
 ;
 
 /* --- Tipos de comandos --- */
@@ -97,10 +99,10 @@ statement:
 
 /* --- Declaracao de variavel --- */
 declaration:
-      type ID                                      { $$ = criar_no_decl($1, $2, NULL); }
-    | type ID '=' expression                       { $$ = criar_no_decl($1, $2, $4); }
-    | type ID '[' NUM ']'                          { $$ = criar_no_array_decl($1, $2, $4, NULL); }
-    | type ID '[' NUM ']' '=' '{' arg_list '}'     { $$ = criar_no_array_decl($1, $2, $4, $8); }
+      type ID                                      { $$ = criar_no_decl($1, $2, NULL); free($2); }
+    | type ID '=' expression                       { $$ = criar_no_decl($1, $2, $4); free($2); }
+    | type ID '[' NUM ']'                          { $$ = criar_no_array_decl($1, $2, $4, NULL); free($2); }
+    | type ID '[' NUM ']' '=' '{' arg_list '}'     { $$ = criar_no_array_decl($1, $2, $4, $8); free($2); }
 ;
 
 /* --- Tipos --- */
@@ -112,8 +114,8 @@ type:
 
 /* --- Atribuicao --- */
 assignment:
-      ID '=' expression                     { $$ = criar_no_atribuicao($1, $3); }
-    | ID '[' expression ']' '=' expression  { $$ = criar_no_atribuicao_array($1, $3, $6); }
+      ID '=' expression                     { $$ = criar_no_atribuicao($1, $3); free($1); }
+    | ID '[' expression ']' '=' expression  { $$ = criar_no_atribuicao_array($1, $3, $6); free($1); }
 ;
 
 /* --- If / Else --- */
@@ -170,11 +172,11 @@ expression:
     | expression OR expression  { $$ = criar_no_binop(OR, $1, $3); }
     | NOT expression            { $$ = criar_no_unop(NOT, $2); }
     | '(' expression ')'        { $$ = $2; }
-    | ID '(' arg_list ')'       { $$ = criar_no_func_call($1, $3); }
-    | ID '[' expression ']'     { $$ = criar_no_array_access($1, $3); }
+    | ID '(' arg_list ')'       { $$ = criar_no_func_call($1, $3); free($1); }
+    | ID '[' expression ']'     { $$ = criar_no_array_access($1, $3); free($1); }
     | NUM                       { $$ = criar_no_numero($1); }
     | NUM_FLOAT                 { $$ = criar_no_float($1); }
-    | ID                        { $$ = criar_no_id($1); }
+    | ID                        { $$ = criar_no_id($1); free($1); }
 ;
 
 %%
@@ -187,8 +189,10 @@ void yyerror(const char *s) {
 /* --- Funcao principal --- */
 int main() {
     printf("Iniciando analise sintatica...\n");
-    
-    if (yyparse() == 0) {
+
+    int parse_result = yyparse();
+
+    if (parse_result == 0 && lexical_errors == 0) {
         printf("Analise concluida com sucesso!\n");
         printf("\n--- TABELA DE SIMBOLOS ---\n");
         SymbolTable tabela;
@@ -198,9 +202,14 @@ int main() {
 
         printf("\n--- ARVORE SINTATICA GERADA ---\n");
         imprimir_ast(raiz_da_arvore, 0);
+
+        free_symbol_table(&tabela);
+        liberar_ast(raiz_da_arvore);
+    } else if (lexical_errors > 0) {
+        printf("A analise falhou devido a erros lexicos.\n");
     } else {
         printf("A analise falhou devido a erros sintaticos.\n");
     }
-    
+
     return 0;
 }

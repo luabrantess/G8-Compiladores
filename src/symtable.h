@@ -23,6 +23,9 @@ typedef struct Symbol {
 typedef struct {
     Symbol *head;
     int current_scope;
+    int next_scope;
+    int scope_stack[256];
+    int scope_stack_top;
     int semantic_errors;
 } SymbolTable;
 
@@ -38,5 +41,6 @@ int insert_symbol(SymbolTable *table, const char *name, int data_type,
 
 void analyze_semantics(ASTNode *root, SymbolTable *table);
 void print_symbol_table(SymbolTable *table);
+void free_symbol_table(SymbolTable *table);
 
 #endif

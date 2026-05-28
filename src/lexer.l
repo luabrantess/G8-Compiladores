@@ -1,7 +1,21 @@
 %{
 #include "parser.tab.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+int lexical_errors = 0;
+
+static char* copiar_texto(const char* texto) {
+    char* copia = malloc(strlen(texto) + 1);
+    if (copia == NULL) {
+        fprintf(stderr, "Erro interno: falha ao copiar identificador\n");
+        exit(1);
+    }
+
+    strcpy(copia, texto);
+    return copia;
+}
 %}
 
 %%
@@ -24,7 +38,7 @@
 "return"                { return RETURN; }
 
  /* --- IDENTIFICADORES E NÚMEROS --- */
-[a-zA-Z_][a-zA-Z0-9_]* { yylval.str = strdup(yytext); return ID; }
+[a-zA-Z_][a-zA-Z0-9_]* { yylval.str = copiar_texto(yytext); return ID; }
 
 [0-9]+"."[0-9]+ {
     yylval.fnum = atof(yytext);
@@ -71,7 +85,7 @@
 "]"                     { return ']'; }
 
  /* --- TRATAMENTO DE ERROS --- */
-.                       { printf("Erro lexico: %s\n", yytext); }
+.                       { printf("Erro lexico: %s\n", yytext); lexical_errors++; }
 
 %%
 

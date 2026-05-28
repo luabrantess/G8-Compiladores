@@ -23,19 +23,40 @@ static const char *kind_to_string(SymbolKind kind) {
     }
 }
 
+static char *copy_string(const char *text) {
+    char *copy = malloc(strlen(text) + 1);
+    if (copy == NULL) {
+        fprintf(stderr, "Erro interno: falha ao copiar nome de simbolo\n");
+        exit(1);
+    }
+
+    strcpy(copy, text);
+    return copy;
+}
+
 void init_symbol_table(SymbolTable *table) {
     table->head = NULL;
     table->current_scope = 0;
+    table->next_scope = 1;
+    table->scope_stack[0] = 0;
+    table->scope_stack_top = 0;
     table->semantic_errors = 0;
 }
 
 void enter_scope(SymbolTable *table) {
-    table->current_scope++;
+    if (table->scope_stack_top >= 255) {
+        fprintf(stderr, "Erro interno: limite de escopos excedido\n");
+        exit(1);
+    }
+
+    table->current_scope = table->next_scope++;
+    table->scope_stack[++table->scope_stack_top] = table->current_scope;
 }
 
 void exit_scope(SymbolTable *table) {
-    if (table->current_scope > 0) {
-        table->current_scope--;
+    if (table->scope_stack_top > 0) {
+        table->scope_stack_top--;
+        table->current_scope = table->scope_stack[table->scope_stack_top];
     }
 }
 
@@ -50,17 +71,17 @@ Symbol *lookup_symbol_in_current_scope(SymbolTable *table, const char *name) {
 }
 
 Symbol *lookup_symbol(SymbolTable *table, const char *name) {
-    Symbol *best_match = NULL;
+    for (int i = table->scope_stack_top; i >= 0; i--) {
+        int active_scope = table->scope_stack[i];
 
-    for (Symbol *symbol = table->head; symbol != NULL; symbol = symbol->next) {
-        if (strcmp(symbol->name, name) == 0 && symbol->scope <= table->current_scope) {
-            if (best_match == NULL || symbol->scope > best_match->scope) {
-                best_match = symbol;
+        for (Symbol *symbol = table->head; symbol != NULL; symbol = symbol->next) {
+            if (symbol->scope == active_scope && strcmp(symbol->name, name) == 0) {
+                return symbol;
             }
         }
     }
 
-    return best_match;
+    return NULL;
 }
 
 int insert_symbol(SymbolTable *table, const char *name, int data_type,
@@ -73,11 +94,11 @@ int insert_symbol(SymbolTable *table, const char *name, int data_type,
 
     Symbol *symbol = malloc(sizeof(Symbol));
     if (symbol == NULL) {
-        printf("Erro interno: falha ao alocar simbolo\n");
+        fprintf(stderr, "Erro interno: falha ao alocar simbolo\n");
         exit(1);
     }
 
-    symbol->name = strdup(name);
+    symbol->name = copy_string(name);
     symbol->data_type = data_type;
     symbol->kind = kind;
     symbol->scope = table->current_scope;
@@ -104,9 +125,31 @@ static int count_arguments(ASTNode *list) {
     return count_list(list);
 }
 
-static void require_symbol(SymbolTable *table, const char *name, const char *usage) {
-    if (lookup_symbol(table, name) == NULL) {
+static Symbol *require_declared_symbol(SymbolTable *table, const char *name, const char *usage) {
+    Symbol *symbol = lookup_symbol(table, name);
+
+    if (symbol == NULL) {
         printf("Erro semantico: %s '%s' nao declarado(a)\n", usage, name);
+        table->semantic_errors++;
+    }
+
+    return symbol;
+}
+
+static void require_variable(SymbolTable *table, const char *name) {
+    Symbol *symbol = require_declared_symbol(table, name, "variavel");
+
+    if (symbol != NULL && symbol->kind != SYMBOL_VARIABLE && symbol->kind != SYMBOL_PARAMETER) {
+        printf("Erro semantico: '%s' nao e uma variavel\n", name);
+        table->semantic_errors++;
+    }
+}
+
+static void require_array(SymbolTable *table, const char *name) {
+    Symbol *symbol = require_declared_symbol(table, name, "array");
+
+    if (symbol != NULL && symbol->kind != SYMBOL_ARRAY) {
+        printf("Erro semantico: '%s' nao e um array\n", name);
         table->semantic_errors++;
     }
 }
@@ -133,7 +176,7 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             break;
 
         case AST_ID:
-            require_symbol(table, node->var_name, "variavel");
+            require_variable(table, node->var_name);
             break;
 
         case AST_BINOP:
@@ -146,12 +189,12 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             break;
 
         case AST_ASSIGN:
-            require_symbol(table, node->assign.var_name, "variavel");
+            require_variable(table, node->assign.var_name);
             analyze_semantics(node->assign.value, table);
             break;
 
         case AST_ASSIGN_ARRAY:
-            require_symbol(table, node->assign_array.var_name, "array");
+            require_array(table, node->assign_array.var_name);
             analyze_semantics(node->assign_array.index, table);
             analyze_semantics(node->assign_array.value, table);
             break;
@@ -227,7 +270,7 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
         }
 
         case AST_ARRAY_ACCESS:
-            require_symbol(table, node->array_access.var_name, "array");
+            require_array(table, node->array_access.var_name);
             analyze_semantics(node->array_access.index, table);
             break;
 
@@ -261,4 +304,22 @@ void print_symbol_table(SymbolTable *table) {
     } else {
         printf("\nAnalise semantica encontrou %d erro(s).\n", table->semantic_errors);
     }
+}
+
+void free_symbol_table(SymbolTable *table) {
+    Symbol *symbol = table->head;
+
+    while (symbol != NULL) {
+        Symbol *next = symbol->next;
+        free(symbol->name);
+        free(symbol);
+        symbol = next;
+    }
+
+    table->head = NULL;
+    table->current_scope = 0;
+    table->next_scope = 1;
+    table->scope_stack[0] = 0;
+    table->scope_stack_top = 0;
+    table->semantic_errors = 0;
 }

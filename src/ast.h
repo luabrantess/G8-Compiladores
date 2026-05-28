@@ -79,5 +79,6 @@ ASTNode* criar_no_lista(ASTNode* item);
 ASTNode* adicionar_na_lista(ASTNode* lista, ASTNode* novo_item);
 
 void imprimir_ast(ASTNode* no, int nivel);
+void liberar_ast(ASTNode* no);
 
 #endif
