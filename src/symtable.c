@@ -4,11 +4,14 @@
 #include "symtable.h"
 #include "parser.tab.h"
 
+#define TYPE_UNKNOWN (-1)
+
 static const char *type_to_string(int data_type) {
     switch (data_type) {
         case INT: return "int";
         case CHAR: return "char";
         case FLOAT: return "float";
+        case TYPE_UNKNOWN: return "desconhecido";
         default: return "desconhecido";
     }
 }
@@ -20,6 +23,27 @@ static const char *kind_to_string(SymbolKind kind) {
         case SYMBOL_FUNCTION: return "funcao";
         case SYMBOL_PARAMETER: return "parametro";
         default: return "desconhecido";
+    }
+}
+
+static const char *operator_to_string(int operator) {
+    switch (operator) {
+        case '+': return "+";
+        case '-': return "-";
+        case '*': return "*";
+        case '/': return "/";
+        case '>': return ">";
+        case '<': return "<";
+        case EQ: return "==";
+        case NEQ: return "!=";
+        case GEQ: return ">=";
+        case LEQ: return "<=";
+        case AND: return "&&";
+        case OR: return "||";
+        case NOT: return "!";
+        case INC: return "++";
+        case DEC: return "--";
+        default: return "operador desconhecido";
     }
 }
 
@@ -41,6 +65,9 @@ void init_symbol_table(SymbolTable *table) {
     table->scope_stack[0] = 0;
     table->scope_stack_top = 0;
     table->semantic_errors = 0;
+    table->inside_function = 0;
+    table->current_function_return_type = TYPE_UNKNOWN;
+    table->current_function_name = NULL;
 }
 
 void enter_scope(SymbolTable *table) {
@@ -104,6 +131,7 @@ int insert_symbol(SymbolTable *table, const char *name, int data_type,
     symbol->scope = table->current_scope;
     symbol->array_size = array_size;
     symbol->parameter_count = parameter_count;
+    symbol->parameter_types = NULL;
     symbol->next = table->head;
     table->head = symbol;
 
@@ -125,6 +153,46 @@ static int count_arguments(ASTNode *list) {
     return count_list(list);
 }
 
+static int is_numeric_type(int data_type) {
+    return data_type == INT || data_type == CHAR || data_type == FLOAT;
+}
+
+static int is_type_compatible(int expected_type, int actual_type) {
+    if (expected_type == TYPE_UNKNOWN || actual_type == TYPE_UNKNOWN) {
+        return 1;
+    }
+
+    if (expected_type == actual_type) {
+        return 1;
+    }
+
+    if (expected_type == FLOAT && (actual_type == INT || actual_type == CHAR)) {
+        return 1;
+    }
+
+    if (expected_type == INT && actual_type == CHAR) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int arithmetic_result_type(int left_type, int right_type) {
+    if (left_type == TYPE_UNKNOWN || right_type == TYPE_UNKNOWN) {
+        return TYPE_UNKNOWN;
+    }
+
+    if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
+        return TYPE_UNKNOWN;
+    }
+
+    if (left_type == FLOAT || right_type == FLOAT) {
+        return FLOAT;
+    }
+
+    return INT;
+}
+
 static Symbol *require_declared_symbol(SymbolTable *table, const char *name, const char *usage) {
     Symbol *symbol = lookup_symbol(table, name);
 
@@ -136,21 +204,308 @@ static Symbol *require_declared_symbol(SymbolTable *table, const char *name, con
     return symbol;
 }
 
-static void require_variable(SymbolTable *table, const char *name) {
+static Symbol *require_variable(SymbolTable *table, const char *name) {
     Symbol *symbol = require_declared_symbol(table, name, "variavel");
 
     if (symbol != NULL && symbol->kind != SYMBOL_VARIABLE && symbol->kind != SYMBOL_PARAMETER) {
         printf("Erro semantico: '%s' nao e uma variavel\n", name);
         table->semantic_errors++;
+        return NULL;
     }
+
+    return symbol;
 }
 
-static void require_array(SymbolTable *table, const char *name) {
+static Symbol *require_array(SymbolTable *table, const char *name) {
     Symbol *symbol = require_declared_symbol(table, name, "array");
 
     if (symbol != NULL && symbol->kind != SYMBOL_ARRAY) {
         printf("Erro semantico: '%s' nao e um array\n", name);
         table->semantic_errors++;
+        return NULL;
+    }
+
+    return symbol;
+}
+
+static int *copy_parameter_types(ASTNode *params, int parameter_count) {
+    if (parameter_count <= 0) {
+        return NULL;
+    }
+
+    int *types = malloc(sizeof(int) * parameter_count);
+    if (types == NULL) {
+        fprintf(stderr, "Erro interno: falha ao alocar tipos dos parametros\n");
+        exit(1);
+    }
+
+    int index = 0;
+    while (params != NULL && index < parameter_count) {
+        ASTNode *item = params->list.item;
+
+        if (item != NULL && item->type == AST_DECL) {
+            types[index] = item->decl.data_type;
+        } else {
+            types[index] = TYPE_UNKNOWN;
+        }
+
+        index++;
+        params = params->list.next;
+    }
+
+    return types;
+}
+
+static void attach_parameter_types(Symbol *function_symbol, ASTNode *params) {
+    if (function_symbol == NULL || function_symbol->kind != SYMBOL_FUNCTION) {
+        return;
+    }
+
+    function_symbol->parameter_types = copy_parameter_types(params, function_symbol->parameter_count);
+}
+
+static int infer_expression_type(ASTNode *node, SymbolTable *table);
+
+static void validate_assignment_type(SymbolTable *table, const char *name,
+                                     int expected_type, int actual_type) {
+    if (!is_type_compatible(expected_type, actual_type)) {
+        printf("Erro semantico: atribuicao incompativel para '%s' (esperado %s, encontrado %s)\n",
+               name,
+               type_to_string(expected_type),
+               type_to_string(actual_type));
+        table->semantic_errors++;
+    }
+}
+
+static void validate_condition_type(SymbolTable *table, ASTNode *condition, const char *command_name) {
+    int condition_type = infer_expression_type(condition, table);
+
+    if (condition_type != TYPE_UNKNOWN && !is_numeric_type(condition_type)) {
+        printf("Erro semantico: condicao do %s deve ser numerica, encontrada %s\n",
+               command_name,
+               type_to_string(condition_type));
+        table->semantic_errors++;
+    }
+}
+
+static int is_lvalue(ASTNode *node) {
+    return node != NULL && (node->type == AST_ID || node->type == AST_ARRAY_ACCESS);
+}
+
+static int infer_array_access_type(ASTNode *node, SymbolTable *table) {
+    Symbol *symbol = require_array(table, node->array_access.var_name);
+    int index_type = infer_expression_type(node->array_access.index, table);
+
+    if (index_type != TYPE_UNKNOWN && index_type != INT) {
+        printf("Erro semantico: indice do array '%s' deve ser int, encontrado %s\n",
+               node->array_access.var_name,
+               type_to_string(index_type));
+        table->semantic_errors++;
+    }
+
+    return symbol != NULL ? symbol->data_type : TYPE_UNKNOWN;
+}
+
+static void validate_function_arguments(ASTNode *args, Symbol *function_symbol,
+                                        const char *function_name, SymbolTable *table) {
+    int expected_count = function_symbol != NULL ? function_symbol->parameter_count : 0;
+    int actual_count = count_arguments(args);
+
+    if (function_symbol == NULL || function_symbol->kind != SYMBOL_FUNCTION) {
+        while (args != NULL) {
+            infer_expression_type(args->list.item, table);
+            args = args->list.next;
+        }
+        return;
+    }
+
+    if (expected_count != actual_count) {
+        printf("Erro semantico: funcao '%s' esperava %d argumento(s), mas recebeu %d\n",
+               function_name,
+               expected_count,
+               actual_count);
+        table->semantic_errors++;
+    }
+
+    int index = 0;
+    while (args != NULL) {
+        int actual_type = infer_expression_type(args->list.item, table);
+
+        if (function_symbol->parameter_types != NULL && index < expected_count) {
+            int expected_type = function_symbol->parameter_types[index];
+
+            if (!is_type_compatible(expected_type, actual_type)) {
+                printf("Erro semantico: argumento %d da funcao '%s' incompativel (esperado %s, encontrado %s)\n",
+                       index + 1,
+                       function_name,
+                       type_to_string(expected_type),
+                       type_to_string(actual_type));
+                table->semantic_errors++;
+            }
+        }
+
+        index++;
+        args = args->list.next;
+    }
+}
+
+static int infer_function_call_type(ASTNode *node, SymbolTable *table) {
+    Symbol *symbol = lookup_symbol(table, node->func_call.func_name);
+
+    if (symbol == NULL) {
+        printf("Erro semantico: funcao '%s' nao declarado(a)\n", node->func_call.func_name);
+        table->semantic_errors++;
+        validate_function_arguments(node->func_call.args, NULL, node->func_call.func_name, table);
+        return TYPE_UNKNOWN;
+    }
+
+    if (symbol->kind != SYMBOL_FUNCTION) {
+        printf("Erro semantico: '%s' nao e uma funcao\n", node->func_call.func_name);
+        table->semantic_errors++;
+        validate_function_arguments(node->func_call.args, NULL, node->func_call.func_name, table);
+        return TYPE_UNKNOWN;
+    }
+
+    validate_function_arguments(node->func_call.args, symbol, node->func_call.func_name, table);
+    return symbol->data_type;
+}
+
+static int infer_binary_operation_type(ASTNode *node, SymbolTable *table) {
+    int left_type = infer_expression_type(node->binop.left, table);
+    int right_type = infer_expression_type(node->binop.right, table);
+    int operator = node->binop.operator;
+
+    if (left_type == TYPE_UNKNOWN || right_type == TYPE_UNKNOWN) {
+        return TYPE_UNKNOWN;
+    }
+
+    switch (operator) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+            if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
+                printf("Erro semantico: operador '%s' requer operandos numericos\n",
+                       operator_to_string(operator));
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return arithmetic_result_type(left_type, right_type);
+
+        case '>':
+        case '<':
+        case GEQ:
+        case LEQ:
+        case EQ:
+        case NEQ:
+            if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
+                printf("Erro semantico: operador '%s' requer operandos numericos\n",
+                       operator_to_string(operator));
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return INT;
+
+        case AND:
+        case OR:
+            if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
+                printf("Erro semantico: operador '%s' requer operandos numericos\n",
+                       operator_to_string(operator));
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return INT;
+
+        default:
+            return TYPE_UNKNOWN;
+    }
+}
+
+static int infer_unary_operation_type(ASTNode *node, SymbolTable *table) {
+    int operand_type = infer_expression_type(node->unop.operand, table);
+    int operator = node->unop.operator;
+
+    if (operand_type == TYPE_UNKNOWN) {
+        return TYPE_UNKNOWN;
+    }
+
+    switch (operator) {
+        case '-':
+            if (!is_numeric_type(operand_type)) {
+                printf("Erro semantico: operador '-' requer operando numerico\n");
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return operand_type == CHAR ? INT : operand_type;
+
+        case NOT:
+            if (!is_numeric_type(operand_type)) {
+                printf("Erro semantico: operador '!' requer operando numerico\n");
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return INT;
+
+        case INC:
+        case DEC:
+            if (!is_lvalue(node->unop.operand)) {
+                printf("Erro semantico: operador '%s' requer variavel ou acesso a array\n",
+                       operator_to_string(operator));
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            if (!is_numeric_type(operand_type)) {
+                printf("Erro semantico: operador '%s' requer operando numerico\n",
+                       operator_to_string(operator));
+                table->semantic_errors++;
+                return TYPE_UNKNOWN;
+            }
+
+            return operand_type;
+
+        default:
+            return TYPE_UNKNOWN;
+    }
+}
+
+static int infer_expression_type(ASTNode *node, SymbolTable *table) {
+    if (node == NULL) {
+        return TYPE_UNKNOWN;
+    }
+
+    switch (node->type) {
+        case AST_NUM:
+            return INT;
+
+        case AST_FLOAT:
+            return FLOAT;
+
+        case AST_ID: {
+            Symbol *symbol = require_variable(table, node->var_name);
+            return symbol != NULL ? symbol->data_type : TYPE_UNKNOWN;
+        }
+
+        case AST_BINOP:
+            return infer_binary_operation_type(node, table);
+
+        case AST_UNOP:
+            return infer_unary_operation_type(node, table);
+
+        case AST_FUNC_CALL:
+            return infer_function_call_type(node, table);
+
+        case AST_ARRAY_ACCESS:
+            return infer_array_access_type(node, table);
+
+        default:
+            analyze_semantics(node, table);
+            return TYPE_UNKNOWN;
     }
 }
 
@@ -167,52 +522,119 @@ static void analyze_list_as_parameters(ASTNode *list, SymbolTable *table) {
     }
 }
 
+static void validate_array_initializers(ASTNode *values, SymbolTable *table,
+                                        const char *array_name, int array_type, int array_size) {
+    int count = 0;
+
+    while (values != NULL) {
+        count++;
+        int value_type = infer_expression_type(values->list.item, table);
+
+        if (!is_type_compatible(array_type, value_type)) {
+            printf("Erro semantico: inicializacao incompativel no array '%s' na posicao %d (esperado %s, encontrado %s)\n",
+                   array_name,
+                   count,
+                   type_to_string(array_type),
+                   type_to_string(value_type));
+            table->semantic_errors++;
+        }
+
+        values = values->list.next;
+    }
+
+    if (array_size >= 0 && count > array_size) {
+        printf("Erro semantico: array '%s' possui tamanho %d, mas recebeu %d valor(es)\n",
+               array_name,
+               array_size,
+               count);
+        table->semantic_errors++;
+    }
+}
+
+static int body_guarantees_return(ASTNode *node) {
+    if (node == NULL) {
+        return 0;
+    }
+
+    switch (node->type) {
+        case AST_RETURN:
+            return 1;
+
+        case AST_SEQ:
+            return body_guarantees_return(node->seq.first) ||
+                   body_guarantees_return(node->seq.next);
+
+        case AST_BLOCK:
+            return body_guarantees_return(node->block.statements);
+
+        case AST_IF:
+            return node->if_stmt.else_body != NULL &&
+                   body_guarantees_return(node->if_stmt.if_body) &&
+                   body_guarantees_return(node->if_stmt.else_body);
+
+        default:
+            return 0;
+    }
+}
+
 void analyze_semantics(ASTNode *node, SymbolTable *table) {
     if (node == NULL) return;
 
     switch (node->type) {
         case AST_NUM:
         case AST_FLOAT:
-            break;
-
         case AST_ID:
-            require_variable(table, node->var_name);
-            break;
-
         case AST_BINOP:
-            analyze_semantics(node->binop.left, table);
-            analyze_semantics(node->binop.right, table);
-            break;
-
         case AST_UNOP:
-            analyze_semantics(node->unop.operand, table);
+        case AST_FUNC_CALL:
+        case AST_ARRAY_ACCESS:
+            infer_expression_type(node, table);
             break;
 
-        case AST_ASSIGN:
-            require_variable(table, node->assign.var_name);
-            analyze_semantics(node->assign.value, table);
-            break;
+        case AST_ASSIGN: {
+            Symbol *symbol = require_variable(table, node->assign.var_name);
+            int value_type = infer_expression_type(node->assign.value, table);
 
-        case AST_ASSIGN_ARRAY:
-            require_array(table, node->assign_array.var_name);
-            analyze_semantics(node->assign_array.index, table);
-            analyze_semantics(node->assign_array.value, table);
+            if (symbol != NULL) {
+                validate_assignment_type(table, node->assign.var_name, symbol->data_type, value_type);
+            }
+
             break;
+        }
+
+        case AST_ASSIGN_ARRAY: {
+            Symbol *symbol = require_array(table, node->assign_array.var_name);
+            int index_type = infer_expression_type(node->assign_array.index, table);
+            int value_type = infer_expression_type(node->assign_array.value, table);
+
+            if (index_type != TYPE_UNKNOWN && index_type != INT) {
+                printf("Erro semantico: indice do array '%s' deve ser int, encontrado %s\n",
+                       node->assign_array.var_name,
+                       type_to_string(index_type));
+                table->semantic_errors++;
+            }
+
+            if (symbol != NULL) {
+                validate_assignment_type(table, node->assign_array.var_name, symbol->data_type, value_type);
+            }
+
+            break;
+        }
 
         case AST_IF:
-            analyze_semantics(node->if_stmt.condition, table);
+            validate_condition_type(table, node->if_stmt.condition, "if");
             analyze_semantics(node->if_stmt.if_body, table);
             analyze_semantics(node->if_stmt.else_body, table);
             break;
 
         case AST_WHILE:
-            analyze_semantics(node->while_stmt.condition, table);
+            validate_condition_type(table, node->while_stmt.condition, "while");
             analyze_semantics(node->while_stmt.body, table);
             break;
 
         case AST_FOR:
             analyze_semantics(node->for_stmt.init, table);
-            analyze_semantics(node->for_stmt.condition, table);
+            validate_condition_type(table, node->for_stmt.condition, "for");
             analyze_semantics(node->for_stmt.update, table);
             analyze_semantics(node->for_stmt.body, table);
             break;
@@ -222,57 +644,104 @@ void analyze_semantics(ASTNode *node, SymbolTable *table) {
             analyze_semantics(node->seq.next, table);
             break;
 
-        case AST_DECL:
-            insert_symbol(table, node->decl.var_name, node->decl.data_type,
-                          SYMBOL_VARIABLE, 0, 0);
-            analyze_semantics(node->decl.value, table);
+        case AST_BLOCK:
+            enter_scope(table);
+            analyze_semantics(node->block.statements, table);
+            exit_scope(table);
             break;
+
+        case AST_DECL: {
+            int inserted = insert_symbol(table, node->decl.var_name, node->decl.data_type,
+                                         SYMBOL_VARIABLE, 0, 0);
+            int value_type = infer_expression_type(node->decl.value, table);
+
+            if (inserted && node->decl.value != NULL) {
+                validate_assignment_type(table, node->decl.var_name, node->decl.data_type, value_type);
+            }
+
+            break;
+        }
 
         case AST_ARRAY_DECL:
+            if (node->array_decl.size <= 0) {
+                printf("Erro semantico: array '%s' deve ter tamanho maior que zero\n",
+                       node->array_decl.var_name);
+                table->semantic_errors++;
+            }
+
             insert_symbol(table, node->array_decl.var_name, node->array_decl.data_type,
                           SYMBOL_ARRAY, node->array_decl.size, 0);
-            analyze_semantics(node->array_decl.values, table);
+            validate_array_initializers(node->array_decl.values, table,
+                                        node->array_decl.var_name,
+                                        node->array_decl.data_type,
+                                        node->array_decl.size);
             break;
 
-        case AST_FUNC_DECL:
-            insert_symbol(table, node->func_decl.func_name, node->func_decl.return_type,
-                          SYMBOL_FUNCTION, 0, count_list(node->func_decl.params));
+        case AST_FUNC_DECL: {
+            int parameter_count = count_list(node->func_decl.params);
+            int inserted = insert_symbol(table, node->func_decl.func_name, node->func_decl.return_type,
+                                         SYMBOL_FUNCTION, 0, parameter_count);
+            Symbol *function_symbol = NULL;
+
+            if (inserted) {
+                function_symbol = lookup_symbol_in_current_scope(table, node->func_decl.func_name);
+                attach_parameter_types(function_symbol, node->func_decl.params);
+            }
+
+            int previous_inside_function = table->inside_function;
+            int previous_return_type = table->current_function_return_type;
+            const char *previous_function_name = table->current_function_name;
+
+            table->inside_function = 1;
+            table->current_function_return_type = node->func_decl.return_type;
+            table->current_function_name = node->func_decl.func_name;
 
             enter_scope(table);
             analyze_list_as_parameters(node->func_decl.params, table);
             analyze_semantics(node->func_decl.body, table);
             exit_scope(table);
-            break;
 
-        case AST_RETURN:
-            analyze_semantics(node->return_stmt.expr, table);
-            break;
-
-        case AST_FUNC_CALL: {
-            Symbol *symbol = lookup_symbol(table, node->func_call.func_name);
-
-            if (symbol == NULL) {
-                printf("Erro semantico: funcao '%s' nao declarado(a)\n", node->func_call.func_name);
-                table->semantic_errors++;
-            } else if (symbol->kind != SYMBOL_FUNCTION) {
-                printf("Erro semantico: '%s' nao e uma funcao\n", node->func_call.func_name);
-                table->semantic_errors++;
-            } else if (symbol->parameter_count != count_arguments(node->func_call.args)) {
-                printf("Erro semantico: funcao '%s' esperava %d argumento(s), mas recebeu %d\n",
-                       node->func_call.func_name,
-                       symbol->parameter_count,
-                       count_arguments(node->func_call.args));
+            if (!body_guarantees_return(node->func_decl.body)) {
+                printf("Erro semantico: funcao '%s' deve retornar um valor do tipo %s\n",
+                       node->func_decl.func_name,
+                       type_to_string(node->func_decl.return_type));
                 table->semantic_errors++;
             }
 
-            analyze_semantics(node->func_call.args, table);
+            table->inside_function = previous_inside_function;
+            table->current_function_return_type = previous_return_type;
+            table->current_function_name = previous_function_name;
             break;
         }
 
-        case AST_ARRAY_ACCESS:
-            require_array(table, node->array_access.var_name);
-            analyze_semantics(node->array_access.index, table);
+        case AST_RETURN: {
+            if (!table->inside_function) {
+                printf("Erro semantico: return fora de funcao\n");
+                table->semantic_errors++;
+                infer_expression_type(node->return_stmt.expr, table);
+                break;
+            }
+
+            if (node->return_stmt.expr == NULL) {
+                printf("Erro semantico: return sem valor na funcao '%s' (esperado %s)\n",
+                       table->current_function_name,
+                       type_to_string(table->current_function_return_type));
+                table->semantic_errors++;
+                break;
+            }
+
+            int return_type = infer_expression_type(node->return_stmt.expr, table);
+
+            if (!is_type_compatible(table->current_function_return_type, return_type)) {
+                printf("Erro semantico: retorno incompativel na funcao '%s' (esperado %s, encontrado %s)\n",
+                       table->current_function_name,
+                       type_to_string(table->current_function_return_type),
+                       type_to_string(return_type));
+                table->semantic_errors++;
+            }
+
             break;
+        }
 
         case AST_LIST:
             analyze_semantics(node->list.item, table);
@@ -312,6 +781,7 @@ void free_symbol_table(SymbolTable *table) {
     while (symbol != NULL) {
         Symbol *next = symbol->next;
         free(symbol->name);
+        free(symbol->parameter_types);
         free(symbol);
         symbol = next;
     }
@@ -322,4 +792,7 @@ void free_symbol_table(SymbolTable *table) {
     table->scope_stack[0] = 0;
     table->scope_stack_top = 0;
     table->semantic_errors = 0;
+    table->inside_function = 0;
+    table->current_function_return_type = TYPE_UNKNOWN;
+    table->current_function_name = NULL;
 }

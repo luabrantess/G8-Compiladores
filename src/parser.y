@@ -91,7 +91,7 @@ statement:
     | if_statement              { $$ = $1; }
     | while_statement           { $$ = $1; }
     | for_statement             { $$ = $1; }
-    | '{' statements '}'        { $$ = $2; }
+    | '{' statements '}'        { $$ = criar_no_escopo($2); }
     | function_declaration      { $$ = $1; }
     | RETURN expression ';'     { $$ = criar_no_return($2); }
     | RETURN ';'                { $$ = criar_no_return(NULL); }

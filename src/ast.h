@@ -14,7 +14,8 @@ typedef enum {
     AST_IF,             /* Estrutura Condicional If/Else */
     AST_WHILE,          /* Laço While */
     AST_FOR,            /* Laço For */
-    AST_SEQ,            /* Sequência de comandos (Bloco) */
+    AST_SEQ,            /* Sequência de comandos */
+    AST_BLOCK,          /* Bloco com escopo próprio */
     AST_DECL,           /* Declaração de variável (int x = 5) */
     AST_ARRAY_DECL,     /* Declaração de array (int x[10]) */
     AST_FUNC_DECL,      /* Declaração de função */
@@ -41,6 +42,7 @@ struct ASTNode {
         struct { ASTNode* condition; ASTNode* body; } while_stmt;
         struct { ASTNode* init; ASTNode* condition; ASTNode* update; ASTNode* body; } for_stmt;
         struct { ASTNode* first; ASTNode* next; } seq;
+        struct { ASTNode* statements; } block;
         
         struct { char* var_name; ASTNode* value; } assign;
         struct { char* var_name; ASTNode* index; ASTNode* value; } assign_array;
@@ -64,6 +66,7 @@ ASTNode* criar_no_id(char* nome);
 ASTNode* criar_no_binop(int operador, ASTNode* esq, ASTNode* dir);
 ASTNode* criar_no_unop(int operador, ASTNode* operando);
 ASTNode* criar_no_bloco(ASTNode* comando_atual, ASTNode* proximo_comando);
+ASTNode* criar_no_escopo(ASTNode* comandos);
 ASTNode* criar_no_if(ASTNode* condicao, ASTNode* corpo_if, ASTNode* corpo_else);
 ASTNode* criar_no_while(ASTNode* condicao, ASTNode* corpo);
 ASTNode* criar_no_for(ASTNode* init, ASTNode* condicao, ASTNode* update, ASTNode* corpo);

@@ -92,6 +92,13 @@ ASTNode* criar_no_bloco(ASTNode* comando_atual, ASTNode* proximo_comando) {
     return no;
 }
 
+ASTNode* criar_no_escopo(ASTNode* comandos) {
+    ASTNode* no = novo_no();
+    no->type = AST_BLOCK;
+    no->block.statements = comandos;
+    return no;
+}
+
 ASTNode* criar_no_if(ASTNode* condicao, ASTNode* corpo_if, ASTNode* corpo_else) {
     ASTNode* no = novo_no();
     no->type = AST_IF;
@@ -220,6 +227,9 @@ void imprimir_ast(ASTNode* no, int nivel) {
             imprimir_ast(no->seq.first, nivel + 1);
             imprimir_ast(no->seq.next, nivel);
             break;
+        case AST_BLOCK:
+            imprimir_ast(no->block.statements, nivel);
+            break;
         case AST_IF:
             printf("IF\n");
             imprimir_ast(no->if_stmt.condition, nivel + 1);
@@ -343,6 +353,10 @@ void liberar_ast(ASTNode* no) {
         case AST_SEQ:
             liberar_ast(no->seq.first);
             liberar_ast(no->seq.next);
+            break;
+
+        case AST_BLOCK:
+            liberar_ast(no->block.statements);
             break;
 
         case AST_DECL:
