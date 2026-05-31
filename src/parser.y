@@ -30,7 +30,7 @@ ASTNode* raiz_da_arvore;
 
 /* --- Tipagem das regras (Não-terminais) --- */
 %type <node> program statements optional_statements statement expression
-%type <node> if_statement while_statement for_statement for_action assignment declaration
+%type <node> if_statement while_statement for_statement for_init for_update assignment declaration
 %type <node> param_list params param arg_list args function_declaration
 
 /* --- Tipagem dos tipos simples --- */
@@ -136,15 +136,24 @@ while_statement:
     WHILE '(' expression ')' statement      { $$ = criar_no_while($3, $5); }
 ;
 
-/* Necessario para o for reconhecer operadores de incremento x++*/
-for_action:
-      assignment    { $$ = $1; }
-    | expression    { $$ = $1; }
-;
 
 /* --- For --- */
+for_init:
+      declaration          { $$ = $1; }
+    | assignment           { $$ = $1; }
+    | expression           { $$ = $1; }
+    | /* vazio */          { $$ = NULL; }
+;
+
+for_update:
+      assignment           { $$ = $1; }
+    | expression           { $$ = $1; }
+    | /* vazio */          { $$ = NULL; }
+;
+
 for_statement:
-    FOR '(' assignment ';' expression ';' for_action ')' statement { $$ = criar_no_for($3, $5, $7, $9); }
+    FOR '(' for_init ';' expression ';' for_update ')' statement 
+    { $$ = criar_no_for($3, $5, $7, $9); }
 ;
 
 /* --- Argumentos (Para chamar a funcao) --- */

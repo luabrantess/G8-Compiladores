@@ -794,9 +794,15 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
             break;
 
         case AST_FOR:
-            analyze_node(node->for_stmt.init, ctx);
-            validate_condition_type(ctx, node->for_stmt.condition, "for");
-            analyze_node(node->for_stmt.update, ctx);
+            if (node->for_stmt.init != NULL)
+                analyze_node(node->for_stmt.init, ctx);
+            
+            if (node->for_stmt.condition != NULL)
+                validate_condition_type(ctx, node->for_stmt.condition, "for");
+            
+            if (node->for_stmt.update != NULL)
+                analyze_node(node->for_stmt.update, ctx);
+            
             analyze_node(node->for_stmt.body, ctx);
             break;
 
