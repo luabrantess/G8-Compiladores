@@ -859,16 +859,33 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
             break;
 
         case AST_FOR:
+            /* Cria um novo escopo para o for se houver declaracao no init */
+            if (node->for_stmt.init != NULL && 
+                (node->for_stmt.init->type == AST_BLOCK)) {
+                enter_scope(ctx->table);
+            }
+            
+            /* Analisa o init (pode ser bloco com declaracoes) */
             if (node->for_stmt.init != NULL)
                 analyze_node(node->for_stmt.init, ctx);
             
-            if (node->for_stmt.condition != NULL)
+            /* Analisa a condicao (pode ser NULL = sempre verdadeiro) */
+            if (node->for_stmt.condition != NULL) {
                 validate_condition_type(ctx, node->for_stmt.condition, "for");
+            }
             
+            /* Analisa o update */
             if (node->for_stmt.update != NULL)
                 analyze_node(node->for_stmt.update, ctx);
             
+            /* Analisa o corpo */
             analyze_node(node->for_stmt.body, ctx);
+            
+            /* Sai do escopo se foi criado */
+            if (node->for_stmt.init != NULL && 
+                (node->for_stmt.init->type == AST_BLOCK)) {
+                exit_scope(ctx->table);
+            }
             break;
 
         case AST_SEQ:

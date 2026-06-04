@@ -37,9 +37,9 @@ int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 
 /* --- Tipagem das regras (Não-terminais) --- */
 %type <node> program global_declarations global_declaration statements optional_statements statement expression
-%type <node> if_statement while_statement for_statement for_init for_update assignment
+%type <node> if_statement while_statement for_statement for_init for_condition for_update assignment
 %type <node> param_list params param arg_list args function_declaration function_prototype
-%type <node> declaration declarator_list
+%type <node> declaration declarator_list for_declaration
 %type <num> type
 %type <declarator> declarator
 
@@ -131,6 +131,11 @@ declarator:
     | ID '[' ']' '=' '{' arg_list '}'  { $$.name = $1; $$.init = $6; $$.size = -1; $$.is_array = 1; }
 ;
 
+/* --- Declaracao especifica para o for (cria um no de bloco) --- */
+for_declaration:
+      declaration { $$ = criar_no_escopo($1); }
+;
+
 /* --- Tipos de comandos (NÃO inclui declaracao de funcao) --- */
 statement:
       declaration ';'           { $$ = $1; }
@@ -172,9 +177,14 @@ while_statement:
 
 /* --- For --- */
 for_init:
-      declaration          { $$ = $1; }
+      for_declaration      { $$ = $1; }
     | assignment           { $$ = $1; }
     | expression           { $$ = $1; }
+    | /* vazio */          { $$ = NULL; }
+;
+
+for_condition:
+      expression           { $$ = $1; }
     | /* vazio */          { $$ = NULL; }
 ;
 
@@ -185,8 +195,15 @@ for_update:
 ;
 
 for_statement:
-    FOR '(' for_init ';' expression ';' for_update ')' statement 
-    { $$ = criar_no_for($3, $5, $7, $9); }
+    FOR '(' for_init ';' for_condition ';' for_update ')' statement 
+    { 
+        /* Se houver declaracao no init, ela ja esta dentro de um bloco */
+        /* O corpo do for tambem deve estar no mesmo escopo da declaracao */
+        ASTNode* result;
+        
+        result = criar_no_for($3, $5, $7, $9);
+        $$ = result;
+    }
 ;
 
 /* --- Argumentos (Para chamar a funcao) --- */
