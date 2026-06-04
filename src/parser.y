@@ -83,6 +83,7 @@ statements:
 /* --- Listas de Parametros (Para criar a funcao) --- */
 param_list:
       /* vazio */           { $$ = NULL; }
+    | VOID                  { $$ = NULL; }
     | params                { $$ = $1; }
 ;
 
