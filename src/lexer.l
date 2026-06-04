@@ -21,6 +21,7 @@ static char* copiar_texto(const char* texto) {
 %%
 
 "//".* { /* Ignora comentarios de uma linha */ }
+"/*"([^*]|\*+[^*/])*\*+"/" { /* Ignora comentarios de multiplas linhas */ }
 [ \t\n]+                { /* Ignora espacos em branco e quebras de linha */ }
 
  /* --- TIPOS DE DADOS --- */
