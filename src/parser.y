@@ -29,9 +29,9 @@ ASTNode* raiz_da_arvore;
 %destructor { free($$); } <str>
 
 /* --- Tipagem das regras (Não-terminais) --- */
-%type <node> program statements optional_statements statement expression
+%type <node> program global_declarations global_declaration statements optional_statements statement expression
 %type <node> if_statement while_statement for_statement for_init for_update assignment declaration
-%type <node> param_list params param arg_list args function_declaration
+%type <node> param_list params param arg_list args function_declaration function_prototype
 
 /* --- Tipagem dos tipos simples --- */
 %type <num> type
@@ -54,10 +54,22 @@ ASTNode* raiz_da_arvore;
 
 /* --- Regra inicial --- */
 program:
-    statements { raiz_da_arvore = $1; }
+    global_declarations { raiz_da_arvore = $1; }
 ;
 
-/* --- Lista de comandos --- */
+/* --- Declaracoes no nivel global (arquivo) --- */
+global_declarations:
+      /* vazio */                       { $$ = NULL; }
+    | global_declarations global_declaration { $$ = criar_no_bloco($1, $2); }
+;
+
+global_declaration:
+      function_declaration              { $$ = $1; }
+    | function_prototype ';'            { $$ = $1; }
+    | declaration ';'                   { $$ = $1; }
+;
+
+/* --- Lista de comandos (dentro de funcoes/blocos) --- */
 optional_statements:
       /* vazio */           { $$ = NULL; }
     | statements            { $$ = $1; }
@@ -83,12 +95,17 @@ param:
     type ID                 { $$ = criar_no_decl($1, $2, NULL); free($2); }
 ;
 
-/* --- Definicao de Funcao --- */
+/* --- Prototipo de Funcao --- */
+function_prototype:
+    type ID '(' param_list ')' { $$ = criar_no_func_decl($1, $2, $4, NULL); free($2); }
+;
+
+/* --- Definicao de Funcao (com corpo) --- */
 function_declaration:
     type ID '(' param_list ')' '{' optional_statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); free($2); }
 ;
 
-/* --- Tipos de comandos --- */
+/* --- Tipos de comandos (NÃO inclui declaracao de funcao) --- */
 statement:
       declaration ';'           { $$ = $1; }
     | assignment ';'            { $$ = $1; }
@@ -97,7 +114,6 @@ statement:
     | while_statement           { $$ = $1; }
     | for_statement             { $$ = $1; }
     | '{' optional_statements '}' { $$ = criar_no_escopo($2); }
-    | function_declaration      { $$ = $1; }
     | RETURN expression ';'     { $$ = criar_no_return($2); }
     | RETURN ';'                { $$ = criar_no_return(NULL); }
 ;
@@ -135,7 +151,6 @@ if_statement:
 while_statement:
     WHILE '(' expression ')' statement      { $$ = criar_no_while($3, $5); }
 ;
-
 
 /* --- For --- */
 for_init:

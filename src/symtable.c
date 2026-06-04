@@ -169,7 +169,20 @@ int insert_symbol(SymbolTable *table, const char *name, int data_type,
 
 static Symbol *declare_symbol(SemanticContext *ctx, const char *name, int data_type,
                               SymbolKind kind, int array_size, int parameter_count) {
-    if (lookup_symbol_in_current_scope(ctx->table, name) != NULL) {
+    /* Para funcoes, verificar no escopo global (scope 0) */
+    if (kind == SYMBOL_FUNCTION) {
+        for (Symbol *symbol = ctx->table->head; symbol != NULL; symbol = symbol->next) {
+            if (symbol->scope == 0 && strcmp(symbol->name, name) == 0) {
+                if (symbol->kind == SYMBOL_FUNCTION) {
+                    return symbol; /* Retorna o simbolo existente */
+                } else {
+                    report_semantic_error(ctx, "'%s' ja foi declarado como %s, nao pode ser funcao", 
+                                         name, kind_to_string(symbol->kind));
+                    return NULL;
+                }
+            }
+        }
+    } else if (lookup_symbol_in_current_scope(ctx->table, name) != NULL) {
         report_semantic_error(ctx, "'%s' ja foi declarado neste escopo", name);
         return NULL;
     }
@@ -691,16 +704,37 @@ static void analyze_array_declaration(ASTNode *node, SemanticContext *ctx) {
                                 node->array_decl.size);
 }
 
+static void analyze_function_prototype(ASTNode *node, SemanticContext *ctx) {
+    if (node == NULL) return;
+    
+    int parameter_count = count_list(node->func_decl.params);
+    
+    /* Fora de qualquer escopo (escopo global) */
+    int old_scope = ctx->table->current_scope;
+    ctx->table->current_scope = 0;
+    
+    declare_symbol(ctx, node->func_decl.func_name, node->func_decl.return_type,
+                   SYMBOL_FUNCTION, 0, parameter_count);
+    
+    ctx->table->current_scope = old_scope;
+}
+
 static void analyze_function_declaration(ASTNode *node, SemanticContext *ctx) {
     int parameter_count = count_list(node->func_decl.params);
-    Symbol *function_symbol = declare_symbol(ctx,
-                                             node->func_decl.func_name,
+    
+    /* Fora de qualquer escopo (escopo global) */
+    int old_scope = ctx->table->current_scope;
+    ctx->table->current_scope = 0;
+    
+    Symbol *function_symbol = declare_symbol(ctx, node->func_decl.func_name,
                                              node->func_decl.return_type,
-                                             SYMBOL_FUNCTION,
-                                             0,
-                                             parameter_count);
-
-    attach_parameter_types(function_symbol, node->func_decl.params);
+                                             SYMBOL_FUNCTION, 0, parameter_count);
+    
+    ctx->table->current_scope = old_scope;
+    
+    if (function_symbol != NULL) {
+        attach_parameter_types(function_symbol, node->func_decl.params);
+    }
 
     int previous_inside_function = ctx->inside_function;
     int previous_return_type = ctx->current_function_return_type;
@@ -826,7 +860,11 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
             break;
 
         case AST_FUNC_DECL:
-            analyze_function_declaration(node, ctx);
+            if (node->func_decl.body == NULL) {
+                analyze_function_prototype(node, ctx);
+            } else {
+                analyze_function_declaration(node, ctx);
+            }
             break;
 
         case AST_RETURN:
@@ -852,7 +890,9 @@ void analyze_semantics(ASTNode *root, SymbolTable *table) {
     ctx.current_function_name = NULL;
     ctx.semantic_errors = 0;
 
+    /* Analisar diretamente (sem dois passes) */
     analyze_node(root, &ctx);
+    
     table->semantic_errors = ctx.semantic_errors;
 }
 
