@@ -668,6 +668,14 @@ static void analyze_array_assignment(ASTNode *node, SemanticContext *ctx) {
 }
 
 static void analyze_declaration(ASTNode *node, SemanticContext *ctx) {
+    if (node == NULL) return;
+
+    /* Para listas de declaracoes (declaracoes multiplas) */
+    if (node->type == AST_LIST) {
+        analyze_node(node, ctx);
+        return;
+    }
+
     if (is_void_type(node->decl.data_type)) {
         report_semantic_error(ctx,
                               "variavel '%s' nao pode ter tipo void",
@@ -683,6 +691,16 @@ static void analyze_declaration(ASTNode *node, SemanticContext *ctx) {
     }
 }
 
+/* Funcao para calcular tamanho de array a partir dos inicializadores */
+static int calculate_array_size_from_initializers(ASTNode *values) {
+    int count = 0;
+    while (values != NULL) {
+        count++;
+        values = values->list.next;
+    }
+    return count;
+}
+
 static void analyze_array_declaration(ASTNode *node, SemanticContext *ctx) {
     if (is_void_type(node->array_decl.data_type)) {
         report_semantic_error(ctx,
@@ -690,18 +708,31 @@ static void analyze_array_declaration(ASTNode *node, SemanticContext *ctx) {
                               node->array_decl.var_name);
     }
 
-    if (node->array_decl.size <= 0) {
+    int array_size = node->array_decl.size;
+    
+    /* Se tamanho foi omitido (size = -1), calcular a partir dos inicializadores */
+    if (array_size == -1) {
+        array_size = calculate_array_size_from_initializers(node->array_decl.values);
+        if (array_size == 0) {
+            report_semantic_error(ctx,
+                                  "array '%s' com tamanho omitido deve ter inicializadores",
+                                  node->array_decl.var_name);
+            return;
+        }
+    }
+    
+    if (array_size <= 0) {
         report_semantic_error(ctx,
                               "array '%s' deve ter tamanho maior que zero",
                               node->array_decl.var_name);
     }
 
     declare_symbol(ctx, node->array_decl.var_name, node->array_decl.data_type,
-                   SYMBOL_ARRAY, node->array_decl.size, 0);
+                   SYMBOL_ARRAY, array_size, 0);
     validate_array_initializers(node->array_decl.values, ctx,
                                 node->array_decl.var_name,
                                 node->array_decl.data_type,
-                                node->array_decl.size);
+                                array_size);
 }
 
 static void analyze_function_prototype(ASTNode *node, SemanticContext *ctx) {

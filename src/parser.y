@@ -9,6 +9,7 @@ int yylex(void);
 extern int lexical_errors;
 
 ASTNode* raiz_da_arvore;
+int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 %}
 
 /* --- Uniao para valores semanticos --- */
@@ -17,6 +18,12 @@ ASTNode* raiz_da_arvore;
     float fnum;
     char* str;
     struct ASTNode* node;
+    struct Declarator {
+        char* name;
+        struct ASTNode* init;
+        int size;
+        int is_array;
+    } declarator;
 }
 
 /* --- Tokens vindos do lexer --- */
@@ -30,11 +37,11 @@ ASTNode* raiz_da_arvore;
 
 /* --- Tipagem das regras (Não-terminais) --- */
 %type <node> program global_declarations global_declaration statements optional_statements statement expression
-%type <node> if_statement while_statement for_statement for_init for_update assignment declaration
+%type <node> if_statement while_statement for_statement for_init for_update assignment
 %type <node> param_list params param arg_list args function_declaration function_prototype
-
-/* --- Tipagem dos tipos simples --- */
+%type <node> declaration declarator_list
 %type <num> type
+%type <declarator> declarator
 
 /* --- Precedencia de operadores --- */
 %left OR
@@ -106,6 +113,24 @@ function_declaration:
     type ID '(' param_list ')' '{' optional_statements '}' { $$ = criar_no_func_decl($1, $2, $4, $7); free($2); }
 ;
 
+/* --- Declaracao de variavel (com suporte a multiplas variaveis) --- */
+declaration:
+      type declarator_list { $$ = $2; }
+;
+
+declarator_list:
+      declarator                       { $$ = criar_no_lista(criar_no_decl(current_type, $1.name, $1.init)); free($1.name); }
+    | declarator_list ',' declarator   { $$ = adicionar_na_lista($1, criar_no_decl(current_type, $3.name, $3.init)); free($3.name); }
+;
+
+declarator:
+      ID                               { $$.name = $1; $$.init = NULL; $$.size = 0; $$.is_array = 0; }
+    | ID '=' expression                { $$.name = $1; $$.init = $3; $$.size = 0; $$.is_array = 0; }
+    | ID '[' NUM ']'                   { $$.name = $1; $$.init = NULL; $$.size = $3; $$.is_array = 1; }
+    | ID '[' NUM ']' '=' '{' arg_list '}' { $$.name = $1; $$.init = $7; $$.size = $3; $$.is_array = 1; }
+    | ID '[' ']' '=' '{' arg_list '}'  { $$.name = $1; $$.init = $6; $$.size = -1; $$.is_array = 1; }
+;
+
 /* --- Tipos de comandos (NÃO inclui declaracao de funcao) --- */
 statement:
       declaration ';'           { $$ = $1; }
@@ -119,21 +144,13 @@ statement:
     | RETURN ';'                { $$ = criar_no_return(NULL); }
 ;
 
-/* --- Declaracao de variavel --- */
-declaration:
-      type ID                                      { $$ = criar_no_decl($1, $2, NULL); free($2); }
-    | type ID '=' expression                       { $$ = criar_no_decl($1, $2, $4); free($2); }
-    | type ID '[' NUM ']'                          { $$ = criar_no_array_decl($1, $2, $4, NULL); free($2); }
-    | type ID '[' NUM ']' '=' '{' arg_list '}'     { $$ = criar_no_array_decl($1, $2, $4, $8); free($2); }
-;
-
 /* --- Tipos --- */
 type:
-      INT   { $$ = INT; }
-    | CHAR  { $$ = CHAR; }
-    | FLOAT { $$ = FLOAT; }
-    | DOUBLE { $$ = DOUBLE; }
-    | VOID  { $$ = VOID; }
+      INT   { current_type = INT; $$ = INT; }
+    | CHAR  { current_type = CHAR; $$ = CHAR; }
+    | FLOAT { current_type = FLOAT; $$ = FLOAT; }
+    | DOUBLE { current_type = DOUBLE; $$ = DOUBLE; }
+    | VOID  { current_type = VOID; $$ = VOID; }
 ;
 
 /* --- Atribuicao --- */
