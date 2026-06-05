@@ -18,10 +18,17 @@ static char* copiar_texto(const char* texto) {
 }
 %}
 
+%x COMMENT
+
 %%
 
 "//".* { /* Ignora comentarios de uma linha */ }
-"/*"([^*]|\*+[^*/])*\*+"/" { /* Ignora comentarios de multiplas linhas */ }
+
+"/*"                 { BEGIN(COMMENT); }
+<COMMENT>"*/"        { BEGIN(INITIAL); }
+<COMMENT>.           { /* Ignora caracteres dentro do comentario */ }
+<COMMENT>\n          { /* Ignora quebras de linha dentro do comentario */ }
+
 [ \t\n]+                { /* Ignora espacos em branco e quebras de linha */ }
 
  /* --- TIPOS DE DADOS --- */
