@@ -119,8 +119,22 @@ declaration:
 ;
 
 declarator_list:
-      declarator                       { $$ = criar_no_lista(criar_no_decl(current_type, $1.name, $1.init)); free($1.name); }
-    | declarator_list ',' declarator   { $$ = adicionar_na_lista($1, criar_no_decl(current_type, $3.name, $3.init)); free($3.name); }
+      declarator                       { 
+          if ($1.is_array) {
+              $$ = criar_no_lista(criar_no_array_decl(current_type, $1.name, $1.size, $1.init));
+          } else {
+              $$ = criar_no_lista(criar_no_decl(current_type, $1.name, $1.init));
+          }
+          free($1.name); 
+      }
+    | declarator_list ',' declarator   { 
+          if ($3.is_array) {
+              $$ = adicionar_na_lista($1, criar_no_array_decl(current_type, $3.name, $3.size, $3.init));
+          } else {
+              $$ = adicionar_na_lista($1, criar_no_decl(current_type, $3.name, $3.init));
+          }
+          free($3.name); 
+      }
 ;
 
 declarator:
@@ -133,7 +147,10 @@ declarator:
 
 /* --- Declaracao especifica para o for (cria um no de bloco) --- */
 for_declaration:
-      declaration { $$ = criar_no_escopo($1); }
+      declaration { 
+          /* Para o for, precisamos garantir que arrays tambem sejam tratados corretamente */
+          $$ = criar_no_escopo($1); 
+      }
 ;
 
 /* --- Tipos de comandos (NÃO inclui declaracao de funcao) --- */
@@ -197,10 +214,7 @@ for_update:
 for_statement:
     FOR '(' for_init ';' for_condition ';' for_update ')' statement 
     { 
-        /* Se houver declaracao no init, ela ja esta dentro de um bloco */
-        /* O corpo do for tambem deve estar no mesmo escopo da declaracao */
         ASTNode* result;
-        
         result = criar_no_for($3, $5, $7, $9);
         $$ = result;
     }
