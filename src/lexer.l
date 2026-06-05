@@ -16,6 +16,39 @@ static char* copiar_texto(const char* texto) {
     strcpy(copia, texto);
     return copia;
 }
+
+static char* copiar_string_literal(const char* texto) {
+    size_t tamanho = strlen(texto);
+    char* copia = malloc(tamanho);
+    size_t i;
+    size_t j = 0;
+
+    if (copia == NULL) {
+        fprintf(stderr, "Erro interno: falha ao copiar string literal\n");
+        exit(1);
+    }
+
+    for (i = 1; i + 1 < tamanho; i++) {
+        if (texto[i] == '\\') {
+            i++;
+            switch (texto[i]) {
+                case 'n': copia[j++] = '\n'; break;
+                case 't': copia[j++] = '\t'; break;
+                case 'r': copia[j++] = '\r'; break;
+                case '0': copia[j++] = '\0'; break;
+                case '\\': copia[j++] = '\\'; break;
+                case '\'': copia[j++] = '\''; break;
+                case '"': copia[j++] = '"'; break;
+                default: copia[j++] = texto[i]; break;
+            }
+        } else {
+            copia[j++] = texto[i];
+        }
+    }
+
+    copia[j] = '\0';
+    return copia;
+}
 %}
 
 %option yylineno
@@ -31,6 +64,8 @@ static char* copiar_texto(const char* texto) {
 <COMMENT><<EOF>>      { printf("Erro lexico na linha %d: comentario de bloco nao fechado\n", yylineno); lexical_errors++; yyterminate(); }
 <COMMENT>.           { /* Ignora caracteres dentro do comentario */ }
 <COMMENT>\n          { /* Ignora quebras de linha dentro do comentario */ }
+
+^[ \t]*"#"[ \t]*include[^\n]* { /* Reconhece e ignora diretivas simples de include */ }
 
 [ \t\r\n]+              { /* Ignora espacos em branco e quebras de linha */ }
 
@@ -50,7 +85,12 @@ static char* copiar_texto(const char* texto) {
  /* FUNÇÕES --- */
 "return"                { return RETURN; }
 
- /* --- IDENTIFICADORES E NÚMEROS --- */
+ /* --- IDENTIFICADORES, STRINGS E NÚMEROS --- */
+
+\"([^\\\"\n]|\\[ntr0\\\'\"])*\" {
+    yylval.str = copiar_string_literal(yytext);
+    return STRING_LITERAL;
+}
 
 \'([^\\\'\n]|\\[ntr0\\\'\"])\' {
     char c;

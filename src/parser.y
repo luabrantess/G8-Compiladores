@@ -30,7 +30,7 @@ int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 /* --- Tokens vindos do lexer --- */
 %token INT CHAR FLOAT DOUBLE VOID
 %token IF ELSE WHILE FOR
-%token <str> ID
+%token <str> ID STRING_LITERAL
 %token <num> NUM CHAR_LITERAL
 %token <fnum> NUM_FLOAT
 %token EQ NEQ GEQ LEQ AND OR NOT INC DEC RETURN
@@ -262,6 +262,7 @@ expression:
     | NUM                       { $$ = criar_no_numero($1); }
     | NUM_FLOAT                 { $$ = criar_no_float($1); }
     | CHAR_LITERAL              { $$ = criar_no_char_literal((char)$1); }
+    | STRING_LITERAL            { $$ = criar_no_string_literal($1); free($1); }
     | ID                        { $$ = criar_no_id($1); free($1); }
 ;
 

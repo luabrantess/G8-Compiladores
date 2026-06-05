@@ -6,6 +6,7 @@
 #include "parser.tab.h"
 
 #define TYPE_UNKNOWN (-1)
+#define TYPE_STRING  (-2)
 
 typedef struct {
     SymbolTable *table;
@@ -62,6 +63,7 @@ static const char *type_to_string(int data_type) {
         case FLOAT: return "float";
         case DOUBLE: return "double";
         case VOID: return "void";
+        case TYPE_STRING: return "string";
         case TYPE_UNKNOWN: return "desconhecido";
         default: return "desconhecido";
     }
@@ -239,6 +241,10 @@ static int is_numeric_type(int data_type) {
 
 static int is_void_type(int data_type) {
     return data_type == VOID;
+}
+
+static int is_string_type(int data_type) {
+    return data_type == TYPE_STRING;
 }
 
 static int is_type_compatible(int expected_type, int actual_type) {
@@ -484,6 +490,194 @@ static int infer_array_access_type(ASTNode *node, SemanticContext *ctx) {
     return symbol != NULL ? symbol->data_type : TYPE_UNKNOWN;
 }
 
+static void register_builtin_functions(SemanticContext *ctx) {
+    if (lookup_global_symbol(ctx->table, "printf") == NULL) {
+        int old_scope = ctx->table->current_scope;
+
+        ctx->table->current_scope = 0;
+        Symbol *printf_symbol = add_symbol(ctx->table, "printf", INT, SYMBOL_FUNCTION, 0, -1);
+        ctx->table->current_scope = old_scope;
+
+        printf_symbol->is_function_defined = 1;
+        printf_symbol->has_function_prototype = 1;
+    }
+}
+
+static int printf_spec_expected_type(char specifier) {
+    switch (specifier) {
+        case 'd':
+        case 'i':
+        case 'u':
+        case 'o':
+        case 'x':
+        case 'X':
+            return INT;
+
+        case 'f':
+        case 'F':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G':
+        case 'a':
+        case 'A':
+            return DOUBLE;
+
+        case 'c':
+            return CHAR;
+
+        case 's':
+            return TYPE_STRING;
+
+        default:
+            return TYPE_UNKNOWN;
+    }
+}
+
+static int is_printf_argument_compatible(int expected_type, int actual_type) {
+    if (actual_type == TYPE_UNKNOWN || expected_type == TYPE_UNKNOWN) {
+        return 1;
+    }
+
+    if (expected_type == DOUBLE) {
+        return is_numeric_type(actual_type);
+    }
+
+    if (expected_type == INT) {
+        return actual_type == INT || actual_type == CHAR;
+    }
+
+    if (expected_type == CHAR) {
+        return actual_type == CHAR || actual_type == INT;
+    }
+
+    if (expected_type == TYPE_STRING) {
+        return is_string_type(actual_type);
+    }
+
+    return is_type_compatible(expected_type, actual_type);
+}
+
+static int collect_printf_format_specs(const char *format, char *specs, int max_specs,
+                                       SemanticContext *ctx, int line) {
+    int count = 0;
+
+    for (int i = 0; format[i] != '\0'; i++) {
+        if (format[i] != '%') {
+            continue;
+        }
+
+        i++;
+
+        if (format[i] == '%') {
+            continue;
+        }
+
+        while (format[i] == '-' || format[i] == '+' || format[i] == ' ' ||
+               format[i] == '#' || format[i] == '0') {
+            i++;
+        }
+
+        while (format[i] >= '0' && format[i] <= '9') {
+            i++;
+        }
+
+        if (format[i] == '*') {
+            i++;
+        }
+
+        if (format[i] == '.') {
+            i++;
+            while (format[i] >= '0' && format[i] <= '9') {
+                i++;
+            }
+            if (format[i] == '*') {
+                i++;
+            }
+        }
+
+        while (format[i] == 'h' || format[i] == 'l' || format[i] == 'L' ||
+               format[i] == 'z' || format[i] == 'j' || format[i] == 't') {
+            i++;
+        }
+
+        if (format[i] == '\0') {
+            report_semantic_error_at(ctx, line, "formato incompleto em printf");
+            break;
+        }
+
+        if (printf_spec_expected_type(format[i]) == TYPE_UNKNOWN) {
+            report_semantic_error_at(ctx, line, "especificador de formato '%%%c' nao suportado no printf", format[i]);
+            continue;
+        }
+
+        if (count < max_specs) {
+            specs[count] = format[i];
+        }
+        count++;
+    }
+
+    return count;
+}
+
+static void validate_printf_call(ASTNode *args, SemanticContext *ctx) {
+    if (args == NULL) {
+        report_semantic_error(ctx, "printf requer ao menos uma string de formato");
+        return;
+    }
+
+    ASTNode *format_node = args->list.item;
+    int format_type = infer_expression_type(format_node, ctx);
+
+    if (format_type != TYPE_STRING) {
+        report_semantic_error(ctx, "primeiro argumento de printf deve ser uma string literal");
+    }
+
+    char specs[128];
+    int spec_count = 0;
+
+    if (format_node != NULL && format_node->type == AST_STRING_LITERAL) {
+        spec_count = collect_printf_format_specs(format_node->string_val, specs, 128, ctx, format_node->line);
+    }
+
+    ASTNode *current_arg = args->list.next;
+    int extra_count = 0;
+
+    while (current_arg != NULL) {
+        int actual_type = infer_expression_type(current_arg->list.item, ctx);
+
+        if (actual_type != TYPE_UNKNOWN && !is_numeric_type(actual_type) && !is_string_type(actual_type)) {
+            report_semantic_error(ctx,
+                                  "argumento %d do printf possui tipo nao suportado (%s)",
+                                  extra_count + 2,
+                                  type_to_string(actual_type));
+        }
+
+        if (extra_count < spec_count) {
+            int expected_type = printf_spec_expected_type(specs[extra_count]);
+
+            if (!is_printf_argument_compatible(expected_type, actual_type)) {
+                report_semantic_error(ctx,
+                                      "argumento %d do printf incompativel com formato '%%%c' (esperado %s, encontrado %s)",
+                                      extra_count + 2,
+                                      specs[extra_count],
+                                      type_to_string(expected_type),
+                                      type_to_string(actual_type));
+            }
+        }
+
+        extra_count++;
+        current_arg = current_arg->list.next;
+    }
+
+    if (spec_count > extra_count) {
+        report_semantic_error(ctx,
+                              "printf possui %d especificador(es) de formato, mas recebeu %d argumento(s) apos a string",
+                              spec_count,
+                              extra_count);
+    }
+}
+
 static void validate_function_arguments(ASTNode *args, Symbol *function_symbol,
                                         const char *function_name, SemanticContext *ctx) {
     int expected_count = function_symbol != NULL ? function_symbol->parameter_count : 0;
@@ -528,6 +722,11 @@ static void validate_function_arguments(ASTNode *args, Symbol *function_symbol,
 }
 
 static int infer_function_call_type(ASTNode *node, SemanticContext *ctx) {
+    if (strcmp(node->func_call.func_name, "printf") == 0) {
+        validate_printf_call(node->func_call.args, ctx);
+        return INT;
+    }
+
     Symbol *symbol = lookup_symbol(ctx->table, node->func_call.func_name);
 
     if (symbol == NULL) {
@@ -802,6 +1001,9 @@ static int infer_expression_type(ASTNode *node, SemanticContext *ctx) {
 
         case AST_CHAR_LITERAL:
             return CHAR;
+
+        case AST_STRING_LITERAL:
+            return TYPE_STRING;
 
         case AST_ID: {
             Symbol *symbol = require_variable(ctx, node->var_name);
@@ -1086,6 +1288,7 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
         case AST_NUM:
         case AST_FLOAT:
         case AST_CHAR_LITERAL:
+        case AST_STRING_LITERAL:
         case AST_ID:
         case AST_BINOP:
         case AST_UNOP:
@@ -1238,6 +1441,7 @@ void analyze_semantics(ASTNode *root, SymbolTable *table) {
     ctx.current_line = 0;
     ctx.semantic_errors = 0;
 
+    register_builtin_functions(&ctx);
     collect_function_signatures(root, &ctx);
     analyze_node(root, &ctx);
     validate_main_function(&ctx);
@@ -1251,13 +1455,21 @@ void print_symbol_table(SymbolTable *table) {
     printf("---------------------------------------------------------------------------------\n");
 
     for (Symbol *symbol = table->head; symbol != NULL; symbol = symbol->next) {
-        printf("%-16s %-12s %-12s %-8d %-10d %-10d %-10s\n",
+        char params_text[16];
+
+        if (symbol->parameter_count < 0) {
+            snprintf(params_text, sizeof(params_text), "variadico");
+        } else {
+            snprintf(params_text, sizeof(params_text), "%d", symbol->parameter_count);
+        }
+
+        printf("%-16s %-12s %-12s %-8d %-10d %-10s %-10s\n",
                symbol->name,
                type_to_string(symbol->data_type),
                kind_to_string(symbol->kind),
                symbol->scope,
                symbol->array_size,
-               symbol->parameter_count,
+               params_text,
                symbol->kind == SYMBOL_FUNCTION ? (symbol->is_function_defined ? "sim" : "nao") : "-");
     }
 

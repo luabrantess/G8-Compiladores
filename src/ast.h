@@ -7,6 +7,7 @@ typedef enum {
     AST_NUM,            /* Número inteiro */
     AST_FLOAT,          /* Número quebrado */
     AST_CHAR_LITERAL,   /* Literal de caractere */
+    AST_STRING_LITERAL, /* Literal de string */
     AST_ID,             /* Nome de variável */
     AST_BINOP,          /* Operação Binária (+, -, *, /) */
     AST_UNOP,           /* Operação Unária (-x, !x) */
@@ -41,6 +42,7 @@ struct ASTNode {
         int int_val;       
         float float_val;   
         char char_val;     
+        char* string_val;  
         char* var_name;    
         
         struct { int operator; ASTNode* left; ASTNode* right; } binop;
@@ -71,6 +73,7 @@ struct ASTNode {
 ASTNode* criar_no_numero(int valor);
 ASTNode* criar_no_float(float valor);
 ASTNode* criar_no_char_literal(char valor);
+ASTNode* criar_no_string_literal(char* valor);
 ASTNode* criar_no_id(char* nome);
 ASTNode* criar_no_binop(int operador, ASTNode* esq, ASTNode* dir);
 ASTNode* criar_no_unop(int operador, ASTNode* operando);

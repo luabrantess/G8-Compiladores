@@ -52,6 +52,33 @@ ASTNode* criar_no_char_literal(char valor) {
     return no;
 }
 
+ASTNode* criar_no_string_literal(char* valor) {
+    ASTNode* no = novo_no();
+    no->type = AST_STRING_LITERAL;
+    no->string_val = copiar_string(valor);
+    return no;
+}
+
+static const char* operador_para_string(int operador) {
+    switch (operador) {
+        case '+': return "+";
+        case '-': return "-";
+        case '*': return "*";
+        case '/': return "/";
+        case '%': return "%";
+        case '>': return ">";
+        case '<': return "<";
+        case EQ: return "==";
+        case NEQ: return "!=";
+        case GEQ: return ">=";
+        case LEQ: return "<=";
+        case AND: return "&&";
+        case OR: return "||";
+        case NOT: return "!";
+        default: return NULL;
+    }
+}
+
 ASTNode* criar_no_id(char* nome) {
     ASTNode* no = novo_no();
     no->type = AST_ID;
@@ -248,18 +275,25 @@ void imprimir_ast(ASTNode* no, int nivel) {
         case AST_NUM: printf("NUMERO: %d\n", no->int_val); break;
         case AST_FLOAT: printf("FLOAT: %f\n", no->float_val); break;
         case AST_CHAR_LITERAL: printf("CHAR: '%c'\n", no->char_val); break;
+        case AST_STRING_LITERAL: printf("STRING: \"%s\"\n", no->string_val); break;
         case AST_ID: printf("VARIAVEL: %s\n", no->var_name); break;
         case AST_BINOP:
             printf("BINOP: ");
-            if (no->binop.operator >= 256) printf("[TOKEN %d]\n", no->binop.operator);
-            else printf("%c\n", no->binop.operator);
+            {
+                const char* op = operador_para_string(no->binop.operator);
+                if (op != NULL) printf("%s\n", op);
+                else printf("[TOKEN %d]\n", no->binop.operator);
+            }
             imprimir_ast(no->binop.left, nivel + 1);
             imprimir_ast(no->binop.right, nivel + 1);
             break;
         case AST_UNOP:
             printf("UNOP: ");
-            if (no->unop.operator >= 256) printf("[TOKEN %d]\n", no->unop.operator);
-            else printf("%c\n", no->unop.operator);
+            {
+                const char* op = operador_para_string(no->unop.operator);
+                if (op != NULL) printf("%s\n", op);
+                else printf("[TOKEN %d]\n", no->unop.operator);
+            }
             imprimir_ast(no->unop.operand, nivel + 1);
             break;
         case AST_PRE_INC:
@@ -365,6 +399,10 @@ void liberar_ast(ASTNode* no) {
         case AST_NUM:
         case AST_FLOAT:
         case AST_CHAR_LITERAL:
+            break;
+
+        case AST_STRING_LITERAL:
+            free(no->string_val);
             break;
 
         case AST_ID:
