@@ -506,27 +506,30 @@ static int infer_unary_operation_type(ASTNode *node, SemanticContext *ctx) {
 
             return INT;
 
-        case INC:
-        case DEC:
-            if (!is_lvalue(node->unop.operand)) {
-                report_semantic_error(ctx,
-                                      "operador '%s' requer variavel ou acesso a array",
-                                      operator_to_string(operator));
-                return TYPE_UNKNOWN;
-            }
-
-            if (!is_numeric_type(operand_type)) {
-                report_semantic_error(ctx,
-                                      "operador '%s' requer operando numerico",
-                                      operator_to_string(operator));
-                return TYPE_UNKNOWN;
-            }
-
-            return operand_type;
-
         default:
             return TYPE_UNKNOWN;
     }
+}
+
+static int infer_inc_dec_type(ASTNode *node, SemanticContext *ctx) {
+    int operand_type = infer_expression_type(node->inc_dec.operand, ctx);
+    const char* op_name = (node->type == AST_PRE_INC || node->type == AST_POST_INC) ? "++" : "--";
+    
+    if (!is_lvalue(node->inc_dec.operand)) {
+        report_semantic_error(ctx,
+                              "operador '%s' requer variavel ou acesso a array",
+                              op_name);
+        return TYPE_UNKNOWN;
+    }
+    
+    if (!is_numeric_type(operand_type)) {
+        report_semantic_error(ctx,
+                              "operador '%s' requer operando numerico",
+                              op_name);
+        return TYPE_UNKNOWN;
+    }
+    
+    return operand_type;
 }
 
 static int infer_expression_type(ASTNode *node, SemanticContext *ctx) {
@@ -554,6 +557,12 @@ static int infer_expression_type(ASTNode *node, SemanticContext *ctx) {
 
         case AST_UNOP:
             return infer_unary_operation_type(node, ctx);
+
+        case AST_PRE_INC:
+        case AST_PRE_DEC:
+        case AST_POST_INC:
+        case AST_POST_DEC:
+            return infer_inc_dec_type(node, ctx);
 
         case AST_FUNC_CALL:
             return infer_function_call_type(node, ctx);
@@ -836,6 +845,10 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
         case AST_UNOP:
         case AST_FUNC_CALL:
         case AST_ARRAY_ACCESS:
+        case AST_PRE_INC:
+        case AST_PRE_DEC:
+        case AST_POST_INC:
+        case AST_POST_DEC:
             infer_expression_type(node, ctx);
             break;
 

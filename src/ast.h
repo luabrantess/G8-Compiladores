@@ -9,7 +9,11 @@ typedef enum {
     AST_CHAR_LITERAL,   /* Literal de caractere */
     AST_ID,             /* Nome de variável */
     AST_BINOP,          /* Operação Binária (+, -, *, /) */
-    AST_UNOP,           /* Operação Unária (-x, !x, x++) */
+    AST_UNOP,           /* Operação Unária (-x, !x) */
+    AST_PRE_INC,        /* Pré-incremento (++x) */
+    AST_PRE_DEC,        /* Pré-decremento (--x) */
+    AST_POST_INC,       /* Pós-incremento (x++) */
+    AST_POST_DEC,       /* Pós-decremento (x--) */
     AST_ASSIGN,         /* Atribuição simples (x = 5) */
     AST_ASSIGN_ARRAY,   /* Atribuição em array (x[0] = 5) */
     AST_IF,             /* Estrutura Condicional If/Else */
@@ -40,6 +44,7 @@ struct ASTNode {
         
         struct { int operator; ASTNode* left; ASTNode* right; } binop;
         struct { int operator; ASTNode* operand; } unop;
+        struct { ASTNode* operand; } inc_dec;  /* Para pré/pós incremento/decremento */
         struct { ASTNode* condition; ASTNode* if_body; ASTNode* else_body; } if_stmt;
         struct { ASTNode* condition; ASTNode* body; } while_stmt;
         struct { ASTNode* init; ASTNode* condition; ASTNode* update; ASTNode* body; } for_stmt;
@@ -68,6 +73,10 @@ ASTNode* criar_no_char_literal(char valor);
 ASTNode* criar_no_id(char* nome);
 ASTNode* criar_no_binop(int operador, ASTNode* esq, ASTNode* dir);
 ASTNode* criar_no_unop(int operador, ASTNode* operando);
+ASTNode* criar_no_pre_inc(ASTNode* operando);
+ASTNode* criar_no_pre_dec(ASTNode* operando);
+ASTNode* criar_no_post_inc(ASTNode* operando);
+ASTNode* criar_no_post_dec(ASTNode* operando);
 ASTNode* criar_no_bloco(ASTNode* comando_atual, ASTNode* proximo_comando);
 ASTNode* criar_no_escopo(ASTNode* comandos);
 ASTNode* criar_no_if(ASTNode* condicao, ASTNode* corpo_if, ASTNode* corpo_else);

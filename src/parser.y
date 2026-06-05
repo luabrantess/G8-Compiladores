@@ -39,7 +39,7 @@ int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 %type <node> program global_declarations global_declaration statements optional_statements statement expression
 %type <node> if_statement while_statement for_statement for_init for_condition for_update assignment
 %type <node> param_list params param arg_list args function_declaration function_prototype
-%type <node> declaration declarator_list for_declaration
+%type <node> declaration declarator_list for_declaration lvalue_operand
 %type <num> type
 %type <declarator> declarator
 
@@ -220,6 +220,12 @@ for_statement:
     }
 ;
 
+/* --- Lvalue para incremento/decremento (apenas ID ou array access) --- */
+lvalue_operand:
+      ID                        { $$ = criar_no_id($1); free($1); }
+    | ID '[' expression ']'     { $$ = criar_no_array_access($1, $3); free($1); }
+;
+
 /* --- Argumentos (Para chamar a funcao) --- */
 arg_list:
       /* vazio */           { $$ = NULL; }
@@ -236,10 +242,10 @@ expression:
       expression '+' expression { $$ = criar_no_binop('+', $1, $3); }
     | expression '-' expression { $$ = criar_no_binop('-', $1, $3); }
     | '-' expression %prec UMINUS { $$ = criar_no_unop('-', $2); }
-    | expression INC            { $$ = criar_no_unop(INC, $1); }
-    | INC expression            { $$ = criar_no_unop(INC, $2); }
-    | expression DEC            { $$ = criar_no_unop(DEC, $1); }
-    | DEC expression            { $$ = criar_no_unop(DEC, $2); }
+    | lvalue_operand INC         { $$ = criar_no_post_inc($1); }
+    | INC lvalue_operand         { $$ = criar_no_pre_inc($2); }
+    | lvalue_operand DEC         { $$ = criar_no_post_dec($1); }
+    | DEC lvalue_operand         { $$ = criar_no_pre_dec($2); }
     | expression '*' expression { $$ = criar_no_binop('*', $1, $3); }
     | expression '/' expression { $$ = criar_no_binop('/', $1, $3); }
     | expression EQ expression  { $$ = criar_no_binop(EQ, $1, $3); }

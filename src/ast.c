@@ -74,6 +74,35 @@ ASTNode* criar_no_unop(int operador, ASTNode* operando) {
     return no;
 }
 
+/* --- Incremento e Decremento --- */
+ASTNode* criar_no_pre_inc(ASTNode* operando) {
+    ASTNode* no = novo_no();
+    no->type = AST_PRE_INC;
+    no->inc_dec.operand = operando;
+    return no;
+}
+
+ASTNode* criar_no_pre_dec(ASTNode* operando) {
+    ASTNode* no = novo_no();
+    no->type = AST_PRE_DEC;
+    no->inc_dec.operand = operando;
+    return no;
+}
+
+ASTNode* criar_no_post_inc(ASTNode* operando) {
+    ASTNode* no = novo_no();
+    no->type = AST_POST_INC;
+    no->inc_dec.operand = operando;
+    return no;
+}
+
+ASTNode* criar_no_post_dec(ASTNode* operando) {
+    ASTNode* no = novo_no();
+    no->type = AST_POST_DEC;
+    no->inc_dec.operand = operando;
+    return no;
+}
+
 ASTNode* criar_no_func_call(char* nome, ASTNode* argumentos) {
     ASTNode* no = novo_no();
     no->type = AST_FUNC_CALL;
@@ -230,6 +259,24 @@ void imprimir_ast(ASTNode* no, int nivel) {
             else printf("%c\n", no->unop.operator);
             imprimir_ast(no->unop.operand, nivel + 1);
             break;
+        case AST_PRE_INC:
+            printf("PRE_INC: ++");
+            imprimir_ast(no->inc_dec.operand, nivel);
+            break;
+        case AST_PRE_DEC:
+            printf("PRE_DEC: --");
+            imprimir_ast(no->inc_dec.operand, nivel);
+            break;
+        case AST_POST_INC:
+            printf("POST_INC: ");
+            imprimir_ast(no->inc_dec.operand, nivel);
+            printf("++\n");
+            break;
+        case AST_POST_DEC:
+            printf("POST_DEC: ");
+            imprimir_ast(no->inc_dec.operand, nivel);
+            printf("--\n");
+            break;
         case AST_SEQ:
             printf("--- COMANDO ---\n");
             imprimir_ast(no->seq.first, nivel + 1);
@@ -328,6 +375,13 @@ void liberar_ast(ASTNode* no) {
 
         case AST_UNOP:
             liberar_ast(no->unop.operand);
+            break;
+
+        case AST_PRE_INC:
+        case AST_PRE_DEC:
+        case AST_POST_INC:
+        case AST_POST_DEC:
+            liberar_ast(no->inc_dec.operand);
             break;
 
         case AST_ASSIGN:
