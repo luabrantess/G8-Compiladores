@@ -427,6 +427,72 @@ static int infer_function_call_type(ASTNode *node, SemanticContext *ctx) {
     return symbol->data_type;
 }
 
+/* Avalia uma expressao constante e retorna o valor inteiro (se possivel) */
+static int evaluate_constant_expression(ASTNode *node, int *value, int *is_constant) {
+    *is_constant = 1;
+    
+    switch (node->type) {
+        case AST_NUM:
+            *value = node->int_val;
+            return 1;
+            
+        case AST_FLOAT:
+            /* Para simplificar, nao avaliamos float aqui */
+            *is_constant = 0;
+            return 1;
+            
+        case AST_BINOP: {
+            int left_val, right_val;
+            int left_const, right_const;
+            
+            if (!evaluate_constant_expression(node->binop.left, &left_val, &left_const))
+                return 0;
+            if (!evaluate_constant_expression(node->binop.right, &right_val, &right_const))
+                return 0;
+            
+            if (!left_const || !right_const) {
+                *is_constant = 0;
+                return 1;
+            }
+            
+            switch (node->binop.operator) {
+                case '+': *value = left_val + right_val; break;
+                case '-': *value = left_val - right_val; break;
+                case '*': *value = left_val * right_val; break;
+                case '/': 
+                    if (right_val == 0) {
+                        *is_constant = 0;
+                        return 0;
+                    }
+                    *value = left_val / right_val; 
+                    break;
+                default:
+                    *is_constant = 0;
+                    return 1;
+            }
+            return 1;
+        }
+        
+        case AST_UNOP:
+            if (node->unop.operator == '-') {
+                int operand_val;
+                int operand_const;
+                if (!evaluate_constant_expression(node->unop.operand, &operand_val, &operand_const))
+                    return 0;
+                if (operand_const) {
+                    *value = -operand_val;
+                    return 1;
+                }
+            }
+            *is_constant = 0;
+            return 1;
+            
+        default:
+            *is_constant = 0;
+            return 1;
+    }
+}
+
 static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
     int left_type = infer_expression_type(node->binop.left, ctx);
     int right_type = infer_expression_type(node->binop.right, ctx);
@@ -440,14 +506,35 @@ static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
         case '+':
         case '-':
         case '*':
-        case '/':
             if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
                 report_semantic_error(ctx,
                                       "operador '%s' requer operandos numericos",
                                       operator_to_string(operator));
                 return TYPE_UNKNOWN;
             }
+            return arithmetic_result_type(left_type, right_type);
 
+        case '/':
+            if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
+                report_semantic_error(ctx,
+                                      "operador '/' requer operandos numericos",
+                                      operator_to_string(operator));
+                return TYPE_UNKNOWN;
+            }
+            
+            /* Verificacao de divisao por zero constante */
+            {
+                int divisor_value;
+                int is_constant;
+                
+                if (evaluate_constant_expression(node->binop.right, &divisor_value, &is_constant)) {
+                    if (is_constant && divisor_value == 0) {
+                        report_semantic_error(ctx, "divisao por zero constante");
+                        return TYPE_UNKNOWN;
+                    }
+                }
+            }
+            
             return arithmetic_result_type(left_type, right_type);
 
         case '>':
@@ -462,7 +549,6 @@ static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
                                       operator_to_string(operator));
                 return TYPE_UNKNOWN;
             }
-
             return INT;
 
         case AND:
@@ -473,7 +559,6 @@ static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
                                       operator_to_string(operator));
                 return TYPE_UNKNOWN;
             }
-
             return INT;
 
         default:
