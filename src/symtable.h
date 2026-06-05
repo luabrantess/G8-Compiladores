@@ -18,6 +18,8 @@ typedef struct Symbol {
     int array_size;
     int parameter_count;
     int *parameter_types;
+    int is_function_defined;
+    int has_function_prototype;
     struct Symbol *next;
 } Symbol;
 

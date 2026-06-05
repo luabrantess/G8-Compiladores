@@ -12,16 +12,41 @@ typedef struct {
     int inside_function;
     int current_function_return_type;
     const char *current_function_name;
+    int current_line;
     int semantic_errors;
 } SemanticContext;
 
 static void analyze_node(ASTNode *node, SemanticContext *ctx);
 static int infer_expression_type(ASTNode *node, SemanticContext *ctx);
+static void validate_array_index_bounds(SemanticContext *ctx, Symbol *symbol,
+                                        const char *array_name, ASTNode *index_node);
+
+static void report_semantic_error_at(SemanticContext *ctx, int line, const char *format, ...) {
+    va_list args;
+
+    if (line > 0) {
+        printf("Erro semantico na linha %d: ", line);
+    } else {
+        printf("Erro semantico: ");
+    }
+
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    printf("\n");
+
+    ctx->semantic_errors++;
+}
 
 static void report_semantic_error(SemanticContext *ctx, const char *format, ...) {
     va_list args;
 
-    printf("Erro semantico: ");
+    if (ctx->current_line > 0) {
+        printf("Erro semantico na linha %d: ", ctx->current_line);
+    } else {
+        printf("Erro semantico: ");
+    }
+
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
@@ -58,6 +83,7 @@ static const char *operator_to_string(int operator) {
         case '-': return "-";
         case '*': return "*";
         case '/': return "/";
+        case '%': return "%";
         case '>': return ">";
         case '<': return "<";
         case EQ: return "==";
@@ -149,6 +175,8 @@ static Symbol *add_symbol(SymbolTable *table, const char *name, int data_type,
     symbol->array_size = array_size;
     symbol->parameter_count = parameter_count;
     symbol->parameter_types = NULL;
+    symbol->is_function_defined = 0;
+    symbol->has_function_prototype = 0;
     symbol->next = table->head;
     table->head = symbol;
 
@@ -322,7 +350,96 @@ static void attach_parameter_types(Symbol *function_symbol, ASTNode *params) {
         return;
     }
 
+    free(function_symbol->parameter_types);
     function_symbol->parameter_types = copy_parameter_types(params, function_symbol->parameter_count);
+}
+
+static Symbol *lookup_global_symbol(SymbolTable *table, const char *name) {
+    for (Symbol *symbol = table->head; symbol != NULL; symbol = symbol->next) {
+        if (symbol->scope == 0 && strcmp(symbol->name, name) == 0) {
+            return symbol;
+        }
+    }
+
+    return NULL;
+}
+
+static int parameter_types_are_equal(Symbol *function_symbol, ASTNode *params, int parameter_count) {
+    int *new_types = copy_parameter_types(params, parameter_count);
+    int are_equal = 1;
+
+    if (function_symbol->parameter_count != parameter_count) {
+        are_equal = 0;
+    } else if (function_symbol->parameter_types != NULL && new_types != NULL) {
+        for (int i = 0; i < parameter_count; i++) {
+            if (function_symbol->parameter_types[i] != new_types[i]) {
+                are_equal = 0;
+                break;
+            }
+        }
+    }
+
+    free(new_types);
+    return are_equal;
+}
+
+static Symbol *declare_function_signature(SemanticContext *ctx, ASTNode *node, int is_definition) {
+    int parameter_count = count_list(node->func_decl.params);
+    Symbol *existing = lookup_global_symbol(ctx->table, node->func_decl.func_name);
+
+    if (existing != NULL) {
+        if (existing->kind != SYMBOL_FUNCTION) {
+            report_semantic_error_at(ctx, node->line,
+                                     "'%s' ja foi declarado como %s, nao pode ser funcao",
+                                     node->func_decl.func_name,
+                                     kind_to_string(existing->kind));
+            return NULL;
+        }
+
+        if (existing->data_type != node->func_decl.return_type ||
+            !parameter_types_are_equal(existing, node->func_decl.params, parameter_count)) {
+            report_semantic_error_at(ctx, node->line,
+                                     "assinatura da funcao '%s' incompativel com declaracao anterior",
+                                     node->func_decl.func_name);
+            return existing;
+        }
+
+        if (is_definition) {
+            if (existing->is_function_defined) {
+                report_semantic_error_at(ctx, node->line,
+                                         "funcao '%s' redefinida",
+                                         node->func_decl.func_name);
+            } else {
+                existing->is_function_defined = 1;
+            }
+        } else {
+            existing->has_function_prototype = 1;
+        }
+
+        if (existing->parameter_types == NULL) {
+            attach_parameter_types(existing, node->func_decl.params);
+        }
+
+        return existing;
+    }
+
+    int old_scope = ctx->table->current_scope;
+    ctx->table->current_scope = 0;
+
+    Symbol *function_symbol = add_symbol(ctx->table,
+                                         node->func_decl.func_name,
+                                         node->func_decl.return_type,
+                                         SYMBOL_FUNCTION,
+                                         0,
+                                         parameter_count);
+
+    ctx->table->current_scope = old_scope;
+
+    attach_parameter_types(function_symbol, node->func_decl.params);
+    function_symbol->is_function_defined = is_definition ? 1 : 0;
+    function_symbol->has_function_prototype = is_definition ? 0 : 1;
+
+    return function_symbol;
 }
 
 static void validate_assignment_type(SemanticContext *ctx, const char *name,
@@ -361,6 +478,8 @@ static int infer_array_access_type(ASTNode *node, SemanticContext *ctx) {
                               node->array_access.var_name,
                               type_to_string(index_type));
     }
+
+    validate_array_index_bounds(ctx, symbol, node->array_access.var_name, node->array_access.index);
 
     return symbol != NULL ? symbol->data_type : TYPE_UNKNOWN;
 }
@@ -459,6 +578,13 @@ static int evaluate_constant_expression(ASTNode *node, int *value, int *is_const
                 case '+': *value = left_val + right_val; break;
                 case '-': *value = left_val - right_val; break;
                 case '*': *value = left_val * right_val; break;
+                case '%':
+                    if (right_val == 0) {
+                        *is_constant = 0;
+                        return 0;
+                    }
+                    *value = left_val % right_val;
+                    break;
                 case '/': 
                     if (right_val == 0) {
                         *is_constant = 0;
@@ -493,6 +619,27 @@ static int evaluate_constant_expression(ASTNode *node, int *value, int *is_const
     }
 }
 
+static void validate_array_index_bounds(SemanticContext *ctx, Symbol *symbol,
+                                        const char *array_name, ASTNode *index_node) {
+    if (symbol == NULL || index_node == NULL || symbol->array_size <= 0) {
+        return;
+    }
+
+    int index_value = 0;
+    int is_constant = 0;
+
+    if (evaluate_constant_expression(index_node, &index_value, &is_constant) && is_constant) {
+        if (index_value < 0 || index_value >= symbol->array_size) {
+            report_semantic_error_at(ctx,
+                                     index_node->line,
+                                     "indice %d fora dos limites do array '%s' (tamanho %d)",
+                                     index_value,
+                                     array_name,
+                                     symbol->array_size);
+        }
+    }
+}
+
 static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
     int left_type = infer_expression_type(node->binop.left, ctx);
     int right_type = infer_expression_type(node->binop.right, ctx);
@@ -514,11 +661,31 @@ static int infer_binary_operation_type(ASTNode *node, SemanticContext *ctx) {
             }
             return arithmetic_result_type(left_type, right_type);
 
+        case '%':
+            if (left_type != INT || right_type != INT) {
+                report_semantic_error(ctx,
+                                      "operador '%%' requer operandos int");
+                return TYPE_UNKNOWN;
+            }
+
+            {
+                int divisor_value;
+                int is_constant;
+
+                if (evaluate_constant_expression(node->binop.right, &divisor_value, &is_constant)) {
+                    if (is_constant && divisor_value == 0) {
+                        report_semantic_error(ctx, "modulo por zero constante");
+                        return TYPE_UNKNOWN;
+                    }
+                }
+            }
+
+            return INT;
+
         case '/':
             if (!is_numeric_type(left_type) || !is_numeric_type(right_type)) {
                 report_semantic_error(ctx,
-                                      "operador '/' requer operandos numericos",
-                                      operator_to_string(operator));
+                                      "operador '/' requer operandos numericos");
                 return TYPE_UNKNOWN;
             }
             
@@ -620,6 +787,10 @@ static int infer_inc_dec_type(ASTNode *node, SemanticContext *ctx) {
 static int infer_expression_type(ASTNode *node, SemanticContext *ctx) {
     if (node == NULL) {
         return TYPE_UNKNOWN;
+    }
+
+    if (node->line > 0) {
+        ctx->current_line = node->line;
     }
 
     switch (node->type) {
@@ -757,6 +928,7 @@ static void analyze_array_assignment(ASTNode *node, SemanticContext *ctx) {
     }
 
     if (symbol != NULL) {
+        validate_array_index_bounds(ctx, symbol, node->assign_array.var_name, node->assign_array.index);
         validate_assignment_type(ctx, node->assign_array.var_name, symbol->data_type, value_type);
     }
 }
@@ -831,34 +1003,17 @@ static void analyze_array_declaration(ASTNode *node, SemanticContext *ctx) {
 
 static void analyze_function_prototype(ASTNode *node, SemanticContext *ctx) {
     if (node == NULL) return;
-    
-    int parameter_count = count_list(node->func_decl.params);
-    
-    /* Fora de qualquer escopo (escopo global) */
-    int old_scope = ctx->table->current_scope;
-    ctx->table->current_scope = 0;
-    
-    declare_symbol(ctx, node->func_decl.func_name, node->func_decl.return_type,
-                   SYMBOL_FUNCTION, 0, parameter_count);
-    
-    ctx->table->current_scope = old_scope;
+
+    if (lookup_global_symbol(ctx->table, node->func_decl.func_name) == NULL) {
+        declare_function_signature(ctx, node, 0);
+    }
 }
 
 static void analyze_function_declaration(ASTNode *node, SemanticContext *ctx) {
-    int parameter_count = count_list(node->func_decl.params);
-    
-    /* Fora de qualquer escopo (escopo global) */
-    int old_scope = ctx->table->current_scope;
-    ctx->table->current_scope = 0;
-    
-    Symbol *function_symbol = declare_symbol(ctx, node->func_decl.func_name,
-                                             node->func_decl.return_type,
-                                             SYMBOL_FUNCTION, 0, parameter_count);
-    
-    ctx->table->current_scope = old_scope;
-    
-    if (function_symbol != NULL) {
-        attach_parameter_types(function_symbol, node->func_decl.params);
+    Symbol *function_symbol = lookup_global_symbol(ctx->table, node->func_decl.func_name);
+
+    if (function_symbol == NULL) {
+        function_symbol = declare_function_signature(ctx, node, 1);
     }
 
     int previous_inside_function = ctx->inside_function;
@@ -875,10 +1030,11 @@ static void analyze_function_declaration(ASTNode *node, SemanticContext *ctx) {
     exit_scope(ctx->table);
 
     if (!is_void_type(node->func_decl.return_type) && !body_guarantees_return(node->func_decl.body)) {
-        report_semantic_error(ctx,
-                              "funcao '%s' deve retornar um valor do tipo %s",
-                              node->func_decl.func_name,
-                              type_to_string(node->func_decl.return_type));
+        report_semantic_error_at(ctx,
+                                 node->line,
+                                 "funcao '%s' deve retornar um valor do tipo %s",
+                                 node->func_decl.func_name,
+                                 type_to_string(node->func_decl.return_type));
     }
 
     ctx->inside_function = previous_inside_function;
@@ -921,6 +1077,11 @@ static void analyze_return(ASTNode *node, SemanticContext *ctx) {
 static void analyze_node(ASTNode *node, SemanticContext *ctx) {
     if (node == NULL) return;
 
+    int previous_line = ctx->current_line;
+    if (node->line > 0) {
+        ctx->current_line = node->line;
+    }
+
     switch (node->type) {
         case AST_NUM:
         case AST_FLOAT:
@@ -957,33 +1118,22 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
             break;
 
         case AST_FOR:
-            /* Cria um novo escopo para o for se houver declaracao no init */
-            if (node->for_stmt.init != NULL && 
-                (node->for_stmt.init->type == AST_BLOCK)) {
-                enter_scope(ctx->table);
-            }
-            
-            /* Analisa o init (pode ser bloco com declaracoes) */
-            if (node->for_stmt.init != NULL)
+            enter_scope(ctx->table);
+
+            if (node->for_stmt.init != NULL) {
                 analyze_node(node->for_stmt.init, ctx);
-            
-            /* Analisa a condicao (pode ser NULL = sempre verdadeiro) */
+            }
+
             if (node->for_stmt.condition != NULL) {
                 validate_condition_type(ctx, node->for_stmt.condition, "for");
             }
-            
-            /* Analisa o update */
-            if (node->for_stmt.update != NULL)
+
+            if (node->for_stmt.update != NULL) {
                 analyze_node(node->for_stmt.update, ctx);
-            
-            /* Analisa o corpo */
-            analyze_node(node->for_stmt.body, ctx);
-            
-            /* Sai do escopo se foi criado */
-            if (node->for_stmt.init != NULL && 
-                (node->for_stmt.init->type == AST_BLOCK)) {
-                exit_scope(ctx->table);
             }
+
+            analyze_node(node->for_stmt.body, ctx);
+            exit_scope(ctx->table);
             break;
 
         case AST_SEQ:
@@ -1025,6 +1175,57 @@ static void analyze_node(ASTNode *node, SemanticContext *ctx) {
         default:
             break;
     }
+
+    ctx->current_line = previous_line;
+}
+
+static void collect_function_signatures(ASTNode *node, SemanticContext *ctx) {
+    if (node == NULL) {
+        return;
+    }
+
+    switch (node->type) {
+        case AST_SEQ:
+            collect_function_signatures(node->seq.first, ctx);
+            collect_function_signatures(node->seq.next, ctx);
+            break;
+
+        case AST_LIST:
+            collect_function_signatures(node->list.item, ctx);
+            collect_function_signatures(node->list.next, ctx);
+            break;
+
+        case AST_FUNC_DECL:
+            declare_function_signature(ctx, node, node->func_decl.body != NULL);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void validate_main_function(SemanticContext *ctx) {
+    Symbol *main_symbol = lookup_global_symbol(ctx->table, "main");
+
+    if (main_symbol == NULL || main_symbol->kind != SYMBOL_FUNCTION) {
+        report_semantic_error(ctx, "funcao 'main' nao declarada");
+        return;
+    }
+
+    if (!main_symbol->is_function_defined) {
+        report_semantic_error(ctx, "funcao 'main' foi apenas prototipada, mas nao definida");
+    }
+
+    if (main_symbol->data_type != INT) {
+        report_semantic_error(ctx,
+                              "funcao 'main' deve retornar int, encontrado %s",
+                              type_to_string(main_symbol->data_type));
+    }
+
+    if (main_symbol->parameter_count != 0) {
+        report_semantic_error(ctx,
+                              "funcao 'main' nao deve possuir parametros neste compilador");
+    }
 }
 
 void analyze_semantics(ASTNode *root, SymbolTable *table) {
@@ -1034,27 +1235,30 @@ void analyze_semantics(ASTNode *root, SymbolTable *table) {
     ctx.inside_function = 0;
     ctx.current_function_return_type = TYPE_UNKNOWN;
     ctx.current_function_name = NULL;
+    ctx.current_line = 0;
     ctx.semantic_errors = 0;
 
-    /* Analisar diretamente (sem dois passes) */
+    collect_function_signatures(root, &ctx);
     analyze_node(root, &ctx);
-    
+    validate_main_function(&ctx);
+
     table->semantic_errors = ctx.semantic_errors;
 }
 
 void print_symbol_table(SymbolTable *table) {
-    printf("%-16s %-12s %-12s %-8s %-10s %-10s\n",
-           "Nome", "Tipo", "Categoria", "Escopo", "TamArray", "Params");
-    printf("----------------------------------------------------------------------\n");
+    printf("%-16s %-12s %-12s %-8s %-10s %-10s %-10s\n",
+           "Nome", "Tipo", "Categoria", "Escopo", "TamArray", "Params", "Definida");
+    printf("---------------------------------------------------------------------------------\n");
 
     for (Symbol *symbol = table->head; symbol != NULL; symbol = symbol->next) {
-        printf("%-16s %-12s %-12s %-8d %-10d %-10d\n",
+        printf("%-16s %-12s %-12s %-8d %-10d %-10d %-10s\n",
                symbol->name,
                type_to_string(symbol->data_type),
                kind_to_string(symbol->kind),
                symbol->scope,
                symbol->array_size,
-               symbol->parameter_count);
+               symbol->parameter_count,
+               symbol->kind == SYMBOL_FUNCTION ? (symbol->is_function_defined ? "sim" : "nao") : "-");
     }
 
     if (table->semantic_errors == 0) {

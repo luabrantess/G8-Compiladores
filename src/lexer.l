@@ -18,6 +18,8 @@ static char* copiar_texto(const char* texto) {
 }
 %}
 
+%option yylineno
+
 %x COMMENT
 
 %%
@@ -26,10 +28,11 @@ static char* copiar_texto(const char* texto) {
 
 "/*"                 { BEGIN(COMMENT); }
 <COMMENT>"*/"        { BEGIN(INITIAL); }
+<COMMENT><<EOF>>      { printf("Erro lexico na linha %d: comentario de bloco nao fechado\n", yylineno); lexical_errors++; yyterminate(); }
 <COMMENT>.           { /* Ignora caracteres dentro do comentario */ }
 <COMMENT>\n          { /* Ignora quebras de linha dentro do comentario */ }
 
-[ \t\n]+                { /* Ignora espacos em branco e quebras de linha */ }
+[ \t\r\n]+              { /* Ignora espacos em branco e quebras de linha */ }
 
  /* --- TIPOS DE DADOS --- */
 "int"                   { return INT; }
@@ -105,6 +108,7 @@ static char* copiar_texto(const char* texto) {
 "-"                     { return '-'; }
 "*"                     { return '*'; }
 "/"                     { return '/'; }
+"%"                     { return '%'; }
 "="                     { return '='; }
 
  /* --- PONTUAÇÃO E DELIMITADORES --- */
@@ -118,7 +122,7 @@ static char* copiar_texto(const char* texto) {
 "]"                     { return ']'; }
 
  /* --- TRATAMENTO DE ERROS --- */
-.                       { printf("Erro lexico: %s\n", yytext); lexical_errors++; }
+.                       { printf("Erro lexico na linha %d: %s\n", yylineno, yytext); lexical_errors++; }
 
 %%
 

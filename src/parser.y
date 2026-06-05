@@ -6,6 +6,7 @@
 
 void yyerror(const char *s);
 int yylex(void);
+extern int yylineno;
 extern int lexical_errors;
 
 ASTNode* raiz_da_arvore;
@@ -49,7 +50,7 @@ int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 %left EQ NEQ
 %left '>' '<' GEQ LEQ
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
 %right NOT UMINUS
 %right INC DEC
 
@@ -145,12 +146,9 @@ declarator:
     | ID '[' ']' '=' '{' arg_list '}'  { $$.name = $1; $$.init = $6; $$.size = -1; $$.is_array = 1; }
 ;
 
-/* --- Declaracao especifica para o for (cria um no de bloco) --- */
+/* --- Declaracao especifica para o for --- */
 for_declaration:
-      declaration { 
-          /* Para o for, precisamos garantir que arrays tambem sejam tratados corretamente */
-          $$ = criar_no_escopo($1); 
-      }
+      declaration { $$ = $1; }
 ;
 
 /* --- Tipos de comandos (NÃO inclui declaracao de funcao) --- */
@@ -248,6 +246,7 @@ expression:
     | DEC lvalue_operand         { $$ = criar_no_pre_dec($2); }
     | expression '*' expression { $$ = criar_no_binop('*', $1, $3); }
     | expression '/' expression { $$ = criar_no_binop('/', $1, $3); }
+    | expression '%' expression { $$ = criar_no_binop('%', $1, $3); }
     | expression EQ expression  { $$ = criar_no_binop(EQ, $1, $3); }
     | expression NEQ expression { $$ = criar_no_binop(NEQ, $1, $3); }
     | expression '>' expression { $$ = criar_no_binop('>', $1, $3); }
@@ -270,7 +269,7 @@ expression:
 
 /* --- Tratamento de erro --- */
 void yyerror(const char *s) {
-    printf("Erro sintatico: %s\n", s);
+    printf("Erro sintatico na linha %d: %s\n", yylineno, s);
 }
 
 /* --- Funcao principal --- */

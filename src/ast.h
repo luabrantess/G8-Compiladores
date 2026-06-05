@@ -35,6 +35,7 @@ typedef struct ASTNode ASTNode;
 
 struct ASTNode {
     NodeType type;
+    int line;
     
     union {
         int int_val;       

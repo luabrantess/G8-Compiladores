@@ -5,12 +5,15 @@
 #include "ast.h"
 #include "parser.tab.h" /* Necessário para reconhecer os tokens como IF, WHILE, INT */
 
+extern int yylineno;
+
 static ASTNode* novo_no(void) {
     ASTNode* no = malloc(sizeof(ASTNode));
     if (no == NULL) {
         fprintf(stderr, "Erro interno: falha ao alocar no da AST\n");
         exit(1);
     }
+    no->line = yylineno;
     return no;
 }
 
