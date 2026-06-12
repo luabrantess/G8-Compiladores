@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "symtable.h"
+#include "codegen_lua.h"
 
 void yyerror(const char *s);
 int yylex(void);
@@ -289,6 +290,13 @@ int main() {
 
         printf("\n--- ARVORE SINTATICA GERADA ---\n");
         imprimir_ast(raiz_da_arvore, 0);
+
+        if (tabela.semantic_errors == 0) {
+            generate_lua(raiz_da_arvore, "saida.lua");
+            printf("\nCodigo Lua gerado em: saida.lua\n");
+        } else {
+            printf("\nCodigo Lua nao gerado devido a erros semanticos.\n");
+        }
 
         free_symbol_table(&tabela);
         liberar_ast(raiz_da_arvore);
