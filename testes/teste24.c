@@ -1,10 +1,15 @@
 // Teste 24: Shadowing - variavel interna com mesmo nome da externa
 // Testa se a tabela de simbolos trata corretamente escopos aninhados
 
+#include <stdio.h>
+
+int main() {    
 int x = 1;
 if (x > 0) {
     int x = 2;
     x = x + 1;
+}
+ return 0;
 }
 
 // Saida esperada:
