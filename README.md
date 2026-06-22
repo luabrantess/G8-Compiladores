@@ -61,7 +61,7 @@ Após a validação semântica, o compilador percorre a AST e gera o código equ
 
 Na pasta `src`, execute o comando `make` e em seguida `./compilador < ../testes/nome_do_arquivo_de_teste.c`.
 
-A execução exibirá as etapas de análise e, ao final, o código Lua gerado a partir do programa C de entrada.
+A execução exibirá as etapas de análise e, ao final, o código Lua gerado a partir do programa C de entrada dentro da pasta src.
 
 **Obs:** É necessário ter instalado em sua máquina o gcc, flex, bison e make. Todos podem ser instalados com o comando `sudo apt install` caso você esteja no ambiente linux.
 
