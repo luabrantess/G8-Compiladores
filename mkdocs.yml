@@ -2,11 +2,11 @@ site_name: Compiladores
 site_description: Documentação do projeto de Compiladores
 site_url: https://luabrantess.github.io/G8-Compiladores/
 theme:
-    name: material
-    features:
-        - search.suggest
-        - search.highlight
-        - content.tabs.link
+  name: readthedocs
+  features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
 plugins:
   - search
 nav:

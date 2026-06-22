@@ -3,18 +3,18 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://luabrantess.github.io/G8-Compiladores/documentacao/sprints/sprint2/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://luabrantess.github.io/G8-Compiladores/documentacao/sprints/sprint3/" />
       <link rel="shortcut icon" href="../../../img/favicon.ico" />
-    <title>Sprint 2 - Compiladores</title>
+    <title>Sprint 3 - Compiladores</title>
     <link rel="stylesheet" href="../../../css/theme.css" />
     <link rel="stylesheet" href="../../../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
-        var mkdocs_page_name = "Sprint 2";
-        var mkdocs_page_input_path = "documentacao/sprints/sprint2.md";
-        var mkdocs_page_url = "/G8-Compiladores/documentacao/sprints/sprint2/";
+        var mkdocs_page_name = "Sprint 3";
+        var mkdocs_page_input_path = "documentacao/sprints/sprint3.md";
+        var mkdocs_page_url = "/G8-Compiladores/documentacao/sprints/sprint3/";
       </script>
     
     <!--[if lt IE 9]>
@@ -56,23 +56,35 @@
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../sprint1/">Sprint 1</a>
                   </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Sprint 2</a>
+                  <li class="toctree-l1"><a class="reference internal" href="../sprint2/">Sprint 2</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Sprint 3</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#periodo">Período</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#objetivo-da-sprint">Objetivo da Sprint</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#divisao-de-tarefas">Divisão de Tarefas</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#implementacao-de-testes">Implementação de Testes</a>
+    <li class="toctree-l3"><a class="reference internal" href="#criacao-da-ast-arvore-sintatica-abstrata">Criação da AST (Árvore Sintática Abstrata)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#atividades">Atividades</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#documentacao-e-publicacao">Documentação e Publicação</a>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#criacao-da-tabela-de-simbolos">Criação da Tabela de Símbolos</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#atividades_1">Atividades</a>
+    </li>
+        </ul>
     </li>
         </ul>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#entregaveis-da-sprint">Entregáveis da Sprint</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#historico-de-versoes">Histórico de Versões</a>
+    </li>
     </ul>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../sprint3/">Sprint 3</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../sprint4/">Sprint 4</a>
                   </li>
@@ -92,7 +104,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../../.." class="icon icon-home" aria-label="Docs"></a></li>
           <li class="breadcrumb-item">Sprints</li>
-      <li class="breadcrumb-item active">Sprint 2</li>
+      <li class="breadcrumb-item active">Sprint 3</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -101,43 +113,47 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h2 id="sprint-2">Sprint 2</h2>
-<h3 id="periodo">Período</h3>
+                <h1 id="sprint-3">Sprint 3</h1>
+<h2 id="periodo">Período</h2>
 <ul>
-<li>Duração: 12 dias</li>
-<li>Início: 15 de abril</li>
-<li>Prazo final: 27 de abril</li>
+<li><strong>Duração:</strong> 15 dias</li>
+<li><strong>Início:</strong> 29 de abril de 2026</li>
+<li><strong>Prazo final:</strong> 13 de maio de 2026</li>
 </ul>
 <hr />
-<h3 id="divisao-de-tarefas">Divisão de Tarefas</h3>
-<h4 id="implementacao-de-testes">Implementação de Testes</h4>
-<p><strong>Responsáveis:</strong> Equipe de Testes</p>
+<h2 id="objetivo-da-sprint">Objetivo da Sprint</h2>
+<p>Implementar a <strong>Árvore Sintática Abstrata (AST)</strong> e a <strong>Tabela de Símbolos</strong>, componentes fundamentais para as próximas etapas do compilador. A AST será responsável por representar a estrutura do programa de forma hierárquica, enquanto a Tabela de Símbolos armazenará informações semânticas sobre identificadores, tipos, funções e escopos.</p>
+<hr />
+<h2 id="divisao-de-tarefas">Divisão de Tarefas</h2>
+<h3 id="criacao-da-ast-arvore-sintatica-abstrata">Criação da AST (Árvore Sintática Abstrata)</h3>
+<p><strong>Responsáveis:</strong> <a href="https://github.com/TulioCeleri">Tulio</a> e <a href="https://github.com/G0ndim">Pedro</a></p>
+<p><strong>Prazo interno:</strong> até 06/05/2026</p>
+<h4 id="atividades">Atividades</h4>
 <ul>
-<li>Desenvolvimento e implementação de 15 casos de teste</li>
-<li>Validação do analisador léxico e sintático com diferentes entradas</li>
-<li>Identificação e registro de possíveis falhas</li>
+<li>Definição da estrutura dos nós da AST em <code>ast.h</code>;</li>
+<li>Implementação das funções de criação, manipulação e liberação dos nós em <code>ast.c</code>;</li>
+<li>Integração da AST às regras gramaticais do arquivo <code>parser.y</code>;</li>
 </ul>
 <hr />
-<h4 id="documentacao-e-publicacao">Documentação e Publicação</h4>
-<p><strong>Responsáveis:</strong> Equipe de Documentação</p>
+<h3 id="criacao-da-tabela-de-simbolos">Criação da Tabela de Símbolos</h3>
+<p><strong>Responsáveis:</strong> <a href="https://github.com/luabrantess">Ana Luiza</a>, <a href="https://github.com/samarawwleticia">Samara</a> e <a href="https://github.com/Bgrangeiro">Bruno</a></p>
+<p><strong>Prazo interno:</strong> de 06/05/2026 a 13/05/2026</p>
+<h4 id="atividades_1">Atividades</h4>
 <ul>
-<li>Finalização da documentação do projeto</li>
-<li>Revisão e padronização do conteúdo técnico</li>
-<li>Publicação e entrega do GitHub Pages</li>
-</ul>
-<p><strong>Observações:</strong></p>
-<ul>
-<li>Os casos de teste devem abranger diferentes cenários, incluindo entradas válidas e inválidas.</li>
-<li>A documentação deve refletir fielmente o estado atual do projeto e seus componentes.</li>
+<li>Implementação da estrutura da tabela de símbolos (lista encadeada ou tabela hash);</li>
+<li>Armazenamento de informações sobre variáveis, funções, tipos e escopos;</li>
+<li>Desenvolvimento das operações de inserção, busca e gerenciamento de símbolos;</li>
 </ul>
 <hr />
-<h3 id="entregaveis-da-sprint">Entregáveis da Sprint</h3>
+<h2 id="entregaveis-da-sprint">Entregáveis da Sprint</h2>
 <ul>
-<li>Implementação de 15 casos de teste</li>
-<li>Relatório de validação dos testes</li>
-<li>GitHub Pages publicado e atualizado</li>
+<li>Implementação completa da AST;</li>
+<li>Integração da AST ao analisador sintático;</li>
+<li>Implementação da Tabela de Símbolos;</li>
+<li>Operações de gerenciamento de símbolos e escopos;</li>
 </ul>
-<h2 id="historico-de-versoes">Histórico de versões</h2>
+<hr />
+<h2 id="historico-de-versoes">Histórico de Versões</h2>
 <table>
 <thead>
 <tr>
@@ -151,9 +167,9 @@
 <tbody>
 <tr>
 <td>1.0</td>
-<td>15/04/2026</td>
-<td><a href="https://github.com/luabrantess">Ana Luiza</a></td>
-<td>Adição do planejamento da sprint 2</td>
+<td>31/05/2026</td>
+<td><a href="https://github.com/samarawwleticia">Samara Letícia</a></td>
+<td>Adição do planejamento da Sprint 3</td>
 <td></td>
 </tr>
 </tbody>
@@ -162,8 +178,8 @@
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../sprint1/" class="btn btn-neutral float-left" title="Sprint 1"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../sprint3/" class="btn btn-neutral float-right" title="Sprint 3">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../sprint2/" class="btn btn-neutral float-left" title="Sprint 2"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../sprint4/" class="btn btn-neutral float-right" title="Sprint 4">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -186,10 +202,10 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
-      <span><a href="../sprint1/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../sprint2/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../sprint3/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="../sprint4/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
