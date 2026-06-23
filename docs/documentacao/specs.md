@@ -2,7 +2,7 @@
 
 O compilador que traduz C para Lua atua em uma versão reduzida e não disponibiliza todas as funcionalidades dessas linguagens. Estes são os elementos que podem ser traduzidos:
 
-- **Tipos de Dados**: `int`, `char` e `float`.
+- **Tipos de Dados**: `int`, `char`, `double`, `array`, `string` e `float`.
 - **Condicionais e Repetição**: `if`, `else`, `while` e `for`.
 - **Identificadores e Números**: `[a-zA-Z_][a-zA-Z0-9_]`, `[0-9]+` e `[0-9]+"."[0-9]+`.
 - **Operadores de Comparação**: `==`, `!=`, `>=`, `<=`, `>` e `<`.
@@ -10,6 +10,7 @@ O compilador que traduz C para Lua atua em uma versão reduzida e não disponibi
 - **Operadores Aritméticos**: `+`, `-`, `*` e `/`.
 - **Operador de Atribuição**: `=`.
 - **Delimitadores e Pontuação**: `(`, `)`, `{`, `}` e `;`.
+- **Outros**: `void`, `function`, `return`, `printf`.
 
 As funcionalidades não mencionadas acima não estão disponíveis para a compilação neste projeto.
 
@@ -54,5 +55,6 @@ As funcionalidades não mencionadas acima não estão disponíveis para a compil
 
 | Versão | Data       | Autor           | Descrição da Alteração                  | Revisor   |
 |--------|-----------|----------------|----------------------------------------|--------------|
-| 1.0    | 15/04/2026 | Samara Letícia   | Adição das especificações do compilador | |
-| 2.0    | 22/06/2026 | Samara Letícia   | Adição da Cobertura dos Testes | |
+| 1.0    | 15/04/2026 | Samara Letícia   | Adição das especificações do compilador | Ana Luiza |
+| 2.0    | 22/06/2026 | Samara Letícia   | Adição da Cobertura dos Testes | Ana Luiza |
+| 3.0    | 23/06/2026 | Ana Luiza   | Adição da Cobertura dos Testes |  |
