@@ -35,8 +35,6 @@ int current_type;  /* Armazena o tipo atual para declaracoes multiplas */
 %token <num> NUM CHAR_LITERAL
 %token <fnum> NUM_FLOAT
 %token EQ NEQ GEQ LEQ AND OR NOT INC DEC RETURN
-%destructor { free($$); } <str>
-
 /* --- Tipagem das regras (Não-terminais) --- */
 %type <node> program global_declarations global_declaration statements optional_statements statement expression
 %type <node> if_statement while_statement for_statement for_init for_condition for_update assignment
