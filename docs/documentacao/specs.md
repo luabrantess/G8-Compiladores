@@ -33,6 +33,11 @@ As funcionalidades não mencionadas acima não estão disponíveis para a compil
 | teste28 | Atribuição entre tipos incompatíveis (`int = float`) | Análise semântica (verificação de tipos) | Erro semântico: atribuição incompatível para `'x'` |
 | teste29 | Parâmetros de função acessíveis dentro do corpo | Tabela de símbolos (parâmetros/escopo) / Geração de Lua | Sem erros + código Lua gerado |
 | teste30 | Registro e lookup de múltiplas funções no escopo global | Tabela de símbolos (global) / Geração de Lua | Sem erros + código Lua gerado |
+| teste31 | Tradução de função com retorno e expressão aritmética | Geração de Lua (funções / retorno / expressões) | Função, variáveis locais e retorno traduzidos corretamente para Lua |
+| teste32 | Tradução de condicional `if/else` com chamada de `printf` | Geração de Lua (condicionais / entrada e saída) | `if/else` traduzido para `then/else/end` e `printf` para `io.write(string.format(...))` |
+| teste33 | Tradução de laço `while` com incremento pós-fixado | Geração de Lua (repetição / incremento) | `while` traduzido para `while ... do` e `i++` para `i = i + 1` |
+| teste34 | Tradução de laço `for` para bloco com `while` | Geração de Lua (repetição / atribuição) | Inicialização, condição e atualização do `for` traduzidas para um bloco Lua com `while` |
+| teste35 | Tradução de array, acesso e atribuição por índice | Geração de Lua (arrays) | Array C traduzido para tabela Lua com índices iniciados em zero |
 
 ### Testes inválidos (resultado obtido ≠ resultado esperado)
 

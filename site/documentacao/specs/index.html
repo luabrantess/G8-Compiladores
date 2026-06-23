@@ -47,7 +47,7 @@
               <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../relatoriodesenvolvimento/">Relatório de Desenvolvimento</a>
                   </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Especificações do Compilador</a>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Especificações do Compilador</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#cobertura-dos-testes">Cobertura dos Testes</a>
         <ul>
@@ -125,6 +125,42 @@
 </thead>
 <tbody>
 <tr>
+<td>teste1</td>
+<td>Condicional simples com chamada de <code>printf</code></td>
+<td>Análise sintática / Análise semântica / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
+<td>teste2</td>
+<td>Número negativo com ponto flutuante em laço <code>while</code></td>
+<td>Análise léxica / Análise sintática / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
+<td>teste5</td>
+<td>Condicional <code>if/else</code> com operador <code>!=</code></td>
+<td>Análise sintática / Análise semântica / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
+<td>teste6</td>
+<td>Declarações e aritmética básica com <code>int</code> e <code>float</code></td>
+<td>Análise sintática / Análise semântica / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
+<td>teste8</td>
+<td>Condicionais aninhadas dentro de repetição <code>while</code></td>
+<td>Análise sintática / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
+<td>teste9</td>
+<td>Laço <code>for</code> com expressões relacionais e operador lógico <code>&amp;&amp;</code></td>
+<td>Análise sintática / Geração de Lua</td>
+<td>Sem erros + código Lua gerado</td>
+</tr>
+<tr>
 <td>teste21</td>
 <td>Redeclaração de variável no mesmo escopo</td>
 <td>Tabela de símbolos / Análise semântica</td>
@@ -172,6 +208,36 @@
 <td>Tabela de símbolos (global) / Geração de Lua</td>
 <td>Sem erros + código Lua gerado</td>
 </tr>
+<tr>
+<td>teste31</td>
+<td>Tradução de função com retorno e expressão aritmética</td>
+<td>Geração de Lua (funções / retorno / expressões)</td>
+<td>Função, variáveis locais e retorno traduzidos corretamente para Lua</td>
+</tr>
+<tr>
+<td>teste32</td>
+<td>Tradução de condicional <code>if/else</code> com chamada de <code>printf</code></td>
+<td>Geração de Lua (condicionais / entrada e saída)</td>
+<td><code>if/else</code> traduzido para <code>then/else/end</code> e <code>printf</code> para <code>io.write(string.format(...))</code></td>
+</tr>
+<tr>
+<td>teste33</td>
+<td>Tradução de laço <code>while</code> com incremento pós-fixado</td>
+<td>Geração de Lua (repetição / incremento)</td>
+<td><code>while</code> traduzido para <code>while ... do</code> e <code>i++</code> para <code>i = i + 1</code></td>
+</tr>
+<tr>
+<td>teste34</td>
+<td>Tradução de laço <code>for</code> para bloco com <code>while</code></td>
+<td>Geração de Lua (repetição / atribuição)</td>
+<td>Inicialização, condição e atualização do <code>for</code> traduzidas para um bloco Lua com <code>while</code></td>
+</tr>
+<tr>
+<td>teste35</td>
+<td>Tradução de array, acesso e atribuição por índice</td>
+<td>Geração de Lua (arrays)</td>
+<td>Array C traduzido para tabela Lua com índices iniciados em zero</td>
+</tr>
 </tbody>
 </table>
 <h3 id="testes-invalidos-resultado-obtido-resultado-esperado">Testes inválidos (resultado obtido ≠ resultado esperado)</h3>
@@ -186,6 +252,34 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>teste3</td>
+<td>Erros sintáticos diversos</td>
+<td>Análise sintática</td>
+<td>Erro sintático: <code>syntax error</code></td>
+<td>Falha no parser porque o <code>while</code> está sem parênteses: <code>while x &gt; 0 { }</code></td>
+</tr>
+<tr>
+<td>teste4</td>
+<td>Lista e laço <code>for-in</code></td>
+<td>Análise sintática</td>
+<td>Erro sintático: <code>syntax error</code></td>
+<td>A gramática não reconhece <code>for-in</code>: <code>for i in x { ... }</code></td>
+</tr>
+<tr>
+<td>teste7</td>
+<td>Falta de ponto e vírgula em declaração</td>
+<td>Análise sintática</td>
+<td>Erro sintático: <code>syntax error</code></td>
+<td>Falta <code>;</code> após <code>int y = 20</code></td>
+</tr>
+<tr>
+<td>teste10</td>
+<td>Caractere inválido e <code>if</code> sem parênteses</td>
+<td>Análise léxica / Análise sintática</td>
+<td>Erro léxico em <code>@</code> + erro sintático</td>
+<td>Falha no lexer por causa de <code>@</code> e depois no parser pela expressão quebrada</td>
+</tr>
 <tr>
 <td>teste22</td>
 <td>Aviso de variável declarada mas nunca utilizada</td>

@@ -5,13 +5,15 @@
 Foram estabelecidas as regras léxicas para o analisador, contemplando os seguintes elementos da linguagem:
 
 * Ignorar comentários
-* Declaração de tipos de dados: `int`, `char` e `float`
-* Estruturas condicionais: `if`, `else`, `while`, `for`
-* Identificação de variáveis e contadores
-* Operadores de comparação: `==`, `!=`, `>=`, `<=`, `<`, `>`
-* Operadores lógicos: `&&`, `||` e `!`
-* Operadores aritméticos: `+`, `-`, `*`, `/`, `=`
-* Delimitadores: `(`, `)`, `{`, `}`, `;`
+- **Tipos de Dados**: `int`, `double`, `string`, `array`, `char` e `float`.
+- **Condicionais e Repetição**: `if`, `else`, `while` e `for`.
+- **Identificadores e Números**: `[a-zA-Z_][a-zA-Z0-9_]`, `[0-9]+` e `[0-9]+"."[0-9]+`.
+- **Operadores de Comparação**: `==`, `!=`, `>=`, `<=`, `>` e `<`.
+- **Operadores Lógicos**: `&&`, `||` e `!`.
+- **Operadores Aritméticos**: `+`, `-`, `*` e `/`.
+- **Operador de Atribuição**: `=`.
+- **Delimitadores e Pontuação**: `(`, `)`, `{`, `}` e `;`.
+- **Outros**: `void`, `function`, `return` e `printf`.
 
 ---
 
