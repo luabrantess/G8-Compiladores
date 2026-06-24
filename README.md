@@ -59,11 +59,50 @@ Após a validação semântica, o compilador percorre a AST e gera o código equ
 
 ## 3. Como Rodar os Testes
 
-Na pasta `src`, execute o comando `make` e em seguida `./compilador < ../testes/nome_do_arquivo_de_teste.c`.
+### 3.1 Pré-requisitos
+Antes de iniciar, certifique-se de ter as ferramentas de compilação instaladas em sua máquina. No ambiente Linux (Ubuntu/Debian), você pode instalá-las com o seguinte comando:
 
-A execução exibirá as etapas de análise e, ao final, o código Lua gerado a partir do programa C de entrada dentro da pasta src.
+```bash
+sudo apt install gcc flex bison make
+```
 
-**Obs:** É necessário ter instalado em sua máquina o gcc, flex, bison e make. Todos podem ser instalados com o comando `sudo apt install` caso você esteja no ambiente linux.
+### 3.2 Compilação do Projeto
+1. Navegue até a pasta `src` do projeto:
+   ```bash
+   cd src
+   ```
+2. Execute o comando `make` para compilar o gerador de código e os analisadores:
+   ```bash
+   make
+   ```
+   *Isso gerará o executável chamado `./compilador` dentro da pasta `src`.*
+
+### 3.3 Executando um Caso de Teste
+Como os testes estão divididos entre casos estruturalmente corretos (**válidos**) e incorretos (**inválidos**), utilize os caminhos correspondentes:
+
+#### Cenário A: Testar um arquivo C válido (Gera código Lua)
+Para rodar um teste que não possui erros sintáticos ou semânticos:
+```bash
+./compilador < ../testes/validos/teste1.c
+```
+**O que esperar do resultado:**
+* O terminal exibirá as mensagens de sucesso da análise sintática, a Árvore Sintática Abstrata (AST) e a Tabela de Símbolos.
+* Um arquivo chamado `saida.lua` será gerado automaticamente dentro da pasta `src` com o código correspondente traduzido.
+
+#### Cenário B: Testar um arquivo C inválido (Aponta erros)
+Para rodar um teste projetado para falhar (erro léxico, sintático ou semântico):
+```bash
+./compilador < ../testes/invalidos/teste3.c
+```
+**O que esperar do resultado:**
+* O terminal identificará o motivo exato do travamento da análise (ex: `Erro sintatico`).
+* Nenhum código Lua válido será gerado para o arquivo final.
+
+### 3.4 Limpar Arquivos Gerados
+Para limpar os arquivos temporários gerados pelo Flex/Bison e redefinir a pasta para uma nova compilação, execute:
+```bash
+make clean
+```
 
 ---
 
