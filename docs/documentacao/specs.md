@@ -26,6 +26,13 @@ As funcionalidades não mencionadas acima não estão disponíveis para a compil
 | teste6 | Declarações e aritmética básica com `int` e `float` | Análise sintática / Análise semântica / Geração de Lua | Sem erros + código Lua gerado |
 | teste8 | Condicionais aninhadas dentro de repetição `while` | Análise sintática / Geração de Lua | Sem erros + código Lua gerado |
 | teste9 | Laço `for` com expressões relacionais e operador lógico `&&` | Análise sintática / Geração de Lua | Sem erros + código Lua gerado |
+| teste11 | Condicional simples com operador de igualdade `==` dentro de `main` | Análise sintática / Análise semântica / Geração de Lua | Sem erros + código Lua gerado |
+| teste12 | Laço `for` com inicialização, condição e atualização por atribuição | Análise sintática / Geração de Lua | Sem erros + código Lua gerado |
+| teste14 | Declaração de variável `float` com valor decimal | Análise léxica / Análise sintática / Geração de Lua | Sem erros + código Lua gerado |
+| teste16 | Precedência de operadores aritméticos e uso de menos unário | Análise sintática / AST / Geração de Lua | Sem erros + código Lua gerado |
+| teste17 | Laço `while` com `if/else` e incremento pós-fixado | Análise sintática / AST / Geração de Lua | Sem erros + código Lua gerado |
+| teste18 | Declaração e chamada de função com parâmetros | Tabela de símbolos / Análise semântica / Geração de Lua | Sem erros + código Lua gerado |
+| teste19 | Expressão condicional com operadores relacionais e operador lógico `&&` | Análise sintática / Análise semântica / Geração de Lua | Sem erros + código Lua gerado |
 | teste21 | Redeclaração de variável no mesmo escopo | Tabela de símbolos / Análise semântica | Erro semântico: `'a' ja foi declarado neste escopo` |
 | teste23 | Isolamento de escopo de bloco (variável interna não visível externamente) | Tabela de símbolos (escopos) / Análise semântica | Erro semântico: variável `'y'` não declarada no escopo externo |
 | teste25 | Chamada de função não declarada | Tabela de símbolos (lookup) / Análise semântica | Erro semântico: função `'somar'` não declarada |
@@ -48,6 +55,9 @@ As funcionalidades não mencionadas acima não estão disponíveis para a compil
 | teste4 | Lista e laço `for-in` | Análise sintática | Erro sintático: `syntax error` | A gramática não reconhece `for-in`: `for i in x { ... }` |
 | teste7 | Falta de ponto e vírgula em declaração | Análise sintática | Erro sintático: `syntax error` | Falta `;` após `int y = 20` |
 | teste10 | Caractere inválido e `if` sem parênteses | Análise léxica / Análise sintática | Erro léxico em `@` + erro sintático | Falha no lexer por causa de `@` e depois no parser pela expressão quebrada |
+| teste13 | Diretiva de pré-processador não suportada (`#define`) | Análise léxica | Erro léxico em `#` | O lexer ignora apenas diretivas simples de `#include`, mas não reconhece `#define` |
+| teste15 | Declaração de variável sem ponto e vírgula | Análise sintática | Erro sintático: `syntax error` | Falta `;` após `int x = -2` |
+| teste20 | Uso de variável sem declaração prévia | Tabela de símbolos / Análise semântica | Erro semântico: variável `'x'` não declarada | A atribuição usa `x` sem declaração anterior no escopo |
 | teste22 | Aviso de variável declarada mas nunca utilizada | Análise semântica (avisos) | Aviso semântico: variável `'x'` declarada mas nunca utilizada | Verificação não implementada — nenhum aviso emitido |
 | teste24 | Aviso de *shadowing* (variável interna oculta a externa) | Tabela de símbolos (escopos aninhados) / Análise semântica | Aviso semântico de *shadowing* da variável `'x'` | Verificação não implementada — aviso não emitido |
 
@@ -58,3 +68,4 @@ As funcionalidades não mencionadas acima não estão disponíveis para a compil
 | 1.0    | 15/04/2026 | Samara Letícia   | Adição das especificações do compilador | Ana Luiza |
 | 2.0    | 22/06/2026 | Samara Letícia   | Adição da Cobertura dos Testes | Ana Luiza |
 | 3.0    | 23/06/2026 | Ana Luiza   | Adição da Cobertura dos Testes |  |
+| 4.0    | 24/06/2026 | Bruno Henryque   | Revisão, organização e cobertura dos testes 11 a 20 |  |
